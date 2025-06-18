@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import UserNavbar from '../components/NavbarUser';
 
+const useQuery = () => new URLSearchParams(useLocation().search);
+
 const Home = () => {
+  const query = useQuery();
+  const [nomorMeja, setNomorMeja] = useState(null);
+
+  useEffect(() => {
+    const meja = query.get('meja');
+    if (meja) {
+      setNomorMeja(meja);
+      localStorage.setItem('nomorMeja', meja);
+    }
+  }, [query]);
+
   return (
     <>
       <UserNavbar />
@@ -17,8 +31,7 @@ const Home = () => {
               Selamat Datang di <span className="text-white">TwoNCafe!</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl font-light">
-              Silahkan Pesan makanan dan Minuman favoritmu,<br />
-              Makan enak dan nyaman? <strong>TwoNCafe</strong> solusinya!
+              Kamu sedang berada di <strong>Meja {nomorMeja || '...'}</strong>
             </p>
 
             {/* Search Bar */}
@@ -34,6 +47,30 @@ const Home = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Grid 30 Meja */}
+        <div className="py-8 px-4 sm:px-8 md:px-16 lg:px-32">
+          <h2 className="text-xl font-bold mb-4 text-gray-700">Meja Tersedia</h2>
+          <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4">
+            {[...Array(30)].map((_, i) => {
+              const num = (i + 1).toString();
+              const isAktif = num === nomorMeja;
+              return (
+                <button
+                  key={num}
+                  disabled={!isAktif}
+                  className={`rounded-lg p-3 font-semibold text-sm transition-all duration-300 ${
+                    isAktif
+                      ? 'bg-green-600 text-white cursor-default shadow-[0_0_15px_4px_rgba(34,197,94,0.7)] animate-pulse'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Meja {num}
+                </button>
+              );
+            })}
           </div>
         </div>
 
