@@ -1,0 +1,211 @@
+import React, { useEffect, useState } from 'react';
+import MenuCard from '../components/MenuCard';
+import NavbarUser from '../components/NavbarUser';
+import ModalCart from '../components/ModalCart';
+import ModalCheckout from '../components/ModalCheckout';
+import { supabase } from '../../services/supabase';
+import { toast } from 'react-toastify';
+import { FaShoppingCart } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import 'react-toastify/dist/ReactToastify.css';
+
+const Menu = () => {
+  const [menuList, setMenuList] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [orderInfo, setOrderInfo] = useState({ name: '', table: '', orderType: '' });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMenu();
+  }, []);
+
+  const fetchMenu = async () => {
+    const { data, error } = await supabase.from('menu').select('*');
+    if (error) {
+      toast.error('Gagal mengambil data menu!');
+      return;
+    }
+    setMenuList(data);
+    setLoading(false);
+  };
+
+  const handleAddToCart = (item) => {
+    const exists = cart.find((cartItem) => cartItem.id === item.id);
+    if (exists) {
+      setCart(cart.map((cartItem) =>
+        cartItem.id === item.id
+          ? { ...cartItem, quantity: cartItem.quantity + 1 }
+          : cartItem
+      ));
+    } else {
+      setCart([...cart, { ...item, quantity: 1 }]);
+    }
+
+    toast.success(`${item.name} ditambahkan ke keranjang!`, {
+      position: 'top-right',
+      autoClose: 2000,
+    });
+  };
+
+  const handleCheckout = async (paymentMethod) => {
+    const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const payload = {
+      name: orderInfo.name,
+      table_number: orderInfo.table,
+      order_type: orderInfo.orderType,
+      payment_method: paymentMethod,
+      item: cart.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      total,
+      status: 'pending'
+    };
+
+    const { data, error } = await supabase.from("orders").insert([payload]);
+    console.log("Insert result:", { data, error });
+
+    if (error) {
+      toast.error("❌ Gagal menyimpan pesanan: " + error.message);
+      return;
+    }
+
+    toast.success("✅ Pesanan berhasil disimpan!");
+    setCart([]);
+    setShowCart(false);
+    setShowCheckout(false);
+    setOrderInfo({ name: '', table: '', orderType: '' });
+  };
+
+  const makanan = menuList.filter(item => item.kategori === 'makanan');
+  const minuman = menuList.filter(item => item.kategori === 'minuman');
+
+  return (
+    <>
+      <NavbarUser />
+      <motion.main
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative min-h-screen bg-orange-50 py-6 px-4 sm:px-6 lg:px-8"
+      >
+        <h1 className="text-3xl font-bold text-orange-700 mb-6 text-center">Daftar Menu</h1>
+
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 animate-pulse">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="bg-white h-56 rounded-xl shadow border border-gray-200"></div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold text-amber-900 mb-4">Makanan</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                {makanan.map((item) => (
+                  <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                    <MenuCard
+                      id={item.id}
+                      image={item.image}
+                      name={item.name}
+                      description={item.description}
+                      price={item.price}
+                      onAddToCart={() =>
+                        handleAddToCart({
+                          id: item.id,
+                          name: item.name,
+                          price: item.price,
+                          image: item.image,
+                          description: item.description
+                        })
+                      }
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-2xl font-semibold text-amber-900 mb-4">Minuman</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                {minuman.map((item) => (
+                  <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                    <MenuCard
+                      id={item.id}
+                      image={item.image}
+                      name={item.name}
+                      description={item.description}
+                      price={item.price}
+                      onAddToCart={() =>
+                        handleAddToCart({
+                          id: item.id,
+                          name: item.name,
+                          price: item.price,
+                          image: item.image,
+                          description: item.description
+                        })
+                      }
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+          <button
+            onClick={() => setShowCart(true)}
+            className="bg-amber-900 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-amber-800 transition relative"
+          >
+            <FaShoppingCart size={20} className="sm:size-6" />
+            {cart.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded-full px-1.5">
+                {cart.reduce((acc, item) => acc + item.quantity, 0)}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <ModalCart
+          show={showCart}
+          onClose={() => setShowCart(false)}
+          cart={cart}
+          onResetCart={() => setCart([])}
+          onQuantityChange={(id, delta) => {
+            setCart((prevCart) =>
+              prevCart
+                .map((item) =>
+                  item.id === id ? { ...item, quantity: item.quantity + delta } : item
+                )
+                .filter((item) => item.quantity > 0)
+            );
+          }}
+          onRemoveItem={(id) =>
+            setCart((prevCart) => prevCart.filter((item) => item.id !== id))
+          }
+          onCheckout={() => {
+            setShowCart(false);
+            setShowCheckout(true);
+          }}
+        />
+
+        <ModalCheckout
+          show={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          onConfirm={({ name, table, orderType, paymentMethod }) => {
+            setOrderInfo({ name, table, orderType });
+            handleCheckout(paymentMethod);
+          }}
+          cart={cart}
+        />
+      </motion.main>
+    </>
+  );
+};
+
+export default Menu;
