@@ -10,28 +10,26 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   const [step, setStep] = useState('pilihan');
   const [name, setName] = useState('');
   const [table, setTable] = useState('');
-  const [lockedTable, setLockedTable] = useState('');
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
   const [error, setError] = useState('');
   const [checkingTable, setCheckingTable] = useState(false);
+  const [lockedTable, setLockedTable] = useState('');
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const meja = params.get('meja');
+    const mejaDariURL = params.get('meja');
 
-    if (meja) {
-      localStorage.setItem('nomorMeja', meja);
-      setTable(meja);
-      setLockedTable(meja);
+    if (mejaDariURL && parseInt(mejaDariURL) >= 1 && parseInt(mejaDariURL) <= 30) {
+      localStorage.setItem('nomorMeja', mejaDariURL);
+      setTable(mejaDariURL);
+      setLockedTable(mejaDariURL);
     } else {
-      const fromStorage = localStorage.getItem('nomorMeja');
-      if (fromStorage) {
-        setTable(fromStorage);
-        setLockedTable(fromStorage);
-      }
+      localStorage.removeItem('nomorMeja');
+      setTable('');
+      setLockedTable('');
     }
   }, []);
 
@@ -102,9 +100,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       price: item.price,
     }));
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert);
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
 
     if (itemsError) {
       console.error(itemsError);
@@ -183,17 +179,19 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                   {Array.from({ length: 30 }, (_, i) => {
                     const no = (i + 1).toString();
                     const selected = table === no;
+                    const locked = lockedTable;
+
                     return (
                       <button
                         key={no}
                         onClick={() => {
-                          if (!lockedTable) setTable(no);
+                          if (!locked) setTable(no);
                         }}
-                        disabled={lockedTable && lockedTable !== no}
+                        disabled={locked && locked !== no}
                         className={`py-2 rounded-lg text-sm font-semibold border transition text-center
-                          ${selected ? 'bg-amber-800 text-white border-amber-800 glow' : ''}
-                          ${lockedTable && lockedTable !== no ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
-                          ${!selected && (!lockedTable || lockedTable === no) ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
+                          ${selected ? 'bg-amber-800 text-white border-amber-800' : ''}
+                          ${locked && locked !== no ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                          ${!selected && (!locked || locked === no) ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
                         `}
                       >
                         Meja {no}
