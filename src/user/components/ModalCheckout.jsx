@@ -20,15 +20,16 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mejaDariURL = params.get('meja');
-    if (mejaDariURL && parseInt(mejaDariURL) >= 1 && parseInt(mejaDariURL) <= 30) {
-      setTable(mejaDariURL);
-      setLockedTable(mejaDariURL);
-      localStorage.setItem('nomorMeja', mejaDariURL);
+    const mejaParam = params.get('meja');
+
+    if (mejaParam && /^[1-9]$|^1[0-9]$|^2[0-9]$|^30$/.test(mejaParam)) {
+      setTable(mejaParam);
+      setLockedTable(mejaParam);
+      localStorage.setItem('nomorMeja', mejaParam);
     } else {
-      localStorage.removeItem('nomorMeja');
       setTable('');
       setLockedTable('');
+      localStorage.removeItem('nomorMeja');
     }
   }, []);
 
@@ -99,7 +100,9 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       price: item.price,
     }));
 
-    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(itemsToInsert);
 
     if (itemsError) {
       console.error(itemsError);
@@ -113,7 +116,14 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
     setTimeout(() => {
       navigate('/status', {
-        state: { name, table, type, method, cart, total },
+        state: {
+          name,
+          table,
+          type,
+          method,
+          cart,
+          total,
+        },
       });
     }, 300);
   };
@@ -173,37 +183,32 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                   placeholder="Nama lengkap"
                   className="w-full border px-3 py-2 mb-4 rounded-lg text-sm"
                 />
-                {lockedTable ? (
-                  <>
-                    <p className="text-left text-sm font-medium text-gray-700 mb-2">Nomor Meja Anda:</p>
-                    <div className="bg-gray-100 text-amber-900 font-bold py-2 rounded-lg text-sm">
-                      Meja {lockedTable}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-left text-sm font-medium text-gray-700 mb-2">Pilih Nomor Meja:</p>
-                    <div className="grid grid-cols-5 gap-2 mb-4">
-                      {Array.from({ length: 30 }, (_, i) => {
-                        const no = (i + 1).toString();
-                        const selected = table === no;
-                        return (
-                          <button
-                            key={no}
-                            onClick={() => setTable(no)}
-                            className={`py-2 rounded-lg text-sm font-semibold border transition text-center ${
-                              selected
-                                ? 'bg-amber-800 text-white border-amber-800'
-                                : 'bg-white text-amber-900 border-gray-300 hover:border-amber-500'
-                            }`}
-                          >
-                            Meja {no}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+                <p className="text-left text-sm mb-1 font-medium text-gray-700">Nomor Meja:</p>
+                <div className="grid grid-cols-5 gap-2 mb-4">
+                  {Array.from({ length: 30 }, (_, i) => {
+                    const no = (i + 1).toString();
+                    const isSelected = table === no;
+                    const isLocked = lockedTable && lockedTable === no;
+                    const isDisabled = lockedTable && lockedTable !== no;
+
+                    return (
+                      <button
+                        key={no}
+                        disabled={lockedTable ? isDisabled : true}
+                        onClick={() => {
+                          if (isLocked) setTable(no);
+                        }}
+                        className={`py-2 rounded-lg text-sm font-semibold border transition text-center
+                          ${isLocked ? 'bg-amber-800 text-white border-amber-800' : ''}
+                          ${isDisabled ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                          ${!lockedTable ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                        `}
+                      >
+                        Meja {no}
+                      </button>
+                    );
+                  })}
+                </div>
                 {checkingTable && <p className="text-gray-500 text-sm mb-2">Mengecek ketersediaan meja...</p>}
                 {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
                 <div className="flex justify-end gap-3">
