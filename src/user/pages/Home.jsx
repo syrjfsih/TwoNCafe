@@ -15,10 +15,6 @@ const Home = () => {
     if (meja) {
       setNomorMeja(meja);
       localStorage.setItem('nomorMeja', meja);
-    } else {
-      // Jika tidak akses via barcode, redirect ke halaman notifikasi atau halaman default
-      setNomorMeja('');
-      localStorage.removeItem('nomorMeja');
     }
   }, []);
 
