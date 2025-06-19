@@ -10,18 +10,15 @@ const Home = () => {
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
   useEffect(() => {
-  const meja = query.get('meja');
-
-  if (meja) {
-    localStorage.setItem('nomorMeja', meja);
-    // ⬇️ Redirect otomatis ke halaman menu dengan query param
-    navigate(`/menu?meja=${meja}`, { replace: true });
-  } else {
-    // Kalau gak ada meja, hapus dari localStorage
-    localStorage.removeItem('nomorMeja');
-  }
-}, []);
-
+    const meja = query.get('meja');
+    if (meja) {
+      localStorage.setItem('nomorMeja', meja);
+      setNomorMeja(meja); // ✅ tidak redirect ke /menu, cukup simpan & tampilkan
+    } else {
+      localStorage.removeItem('nomorMeja');
+      setNomorMeja('');
+    }
+  }, []);
 
   return (
     <>
@@ -60,6 +57,17 @@ const Home = () => {
                   <i className="fa fa-search mr-1"></i> Cari
                 </button>
               </div>
+            </div>
+
+            {/* Tombol ke halaman menu */}
+            <div className="mt-6">
+              <button
+                onClick={() => navigate(`/menu?meja=${nomorMeja}`)}
+                className="bg-amber-800 hover:bg-amber-700 px-6 py-3 rounded-full text-white font-semibold text-sm sm:text-base"
+                disabled={!nomorMeja}
+              >
+                Buka Menu
+              </button>
             </div>
           </div>
         </div>
