@@ -22,3 +22,22 @@
     display: none !important;
   }
 }
+
+@layer utilities {
+  .glow {
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.7), 0 0 20px rgba(255, 193, 7, 0.4);
+    animation: pulseGlow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulseGlow {
+    0% {
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 16px rgba(255, 193, 7, 0.9);
+    }
+    100% {
+      box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+    }
+  }
+}

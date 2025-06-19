@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,13 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   const [checkingTable, setCheckingTable] = useState(false);
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  useEffect(() => {
+    const mejaDariQR = localStorage.getItem('nomorMeja');
+    if (mejaDariQR) {
+      setTable(mejaDariQR);
+    }
+  }, []);
 
   const handleSelectType = (selected) => {
     setType(selected);
@@ -84,9 +91,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       price: item.price,
     }));
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert);
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
 
     if (itemsError) {
       console.error(itemsError);
@@ -100,14 +105,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
     setTimeout(() => {
       navigate('/status', {
-        state: {
-          name,
-          table,
-          type,
-          method,
-          cart,
-          total,
-        },
+        state: { name, table, type, method, cart, total },
       });
     }, 300);
   };
@@ -172,15 +170,20 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                   {Array.from({ length: 30 }, (_, i) => {
                     const no = (i + 1).toString();
                     const selected = table === no;
+                    const locked = localStorage.getItem('nomorMeja');
+
                     return (
                       <button
                         key={no}
-                        onClick={() => setTable(no)}
-                        className={`py-2 rounded-lg text-sm font-semibold border transition text-center ${
-                          selected
-                            ? 'bg-amber-800 text-white border-amber-800'
-                            : 'bg-white text-amber-900 border-gray-300 hover:border-amber-500'
-                        }`}
+                        onClick={() => {
+                          if (!locked) setTable(no);
+                        }}
+                        disabled={locked && locked !== no}
+                        className={`py-2 rounded-lg text-sm font-semibold border transition text-center
+                          ${selected ? 'bg-amber-800 text-white border-amber-800 glow' : ''}
+                          ${locked && locked !== no ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                          ${!selected && (!locked || locked === no) ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
+                        `}
                       >
                         Meja {no}
                       </button>

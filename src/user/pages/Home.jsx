@@ -6,7 +6,7 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Home = () => {
   const query = useQuery();
-  const [nomorMeja, setNomorMeja] = useState(null);
+  const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja'));
 
   useEffect(() => {
     const meja = query.get('meja');
