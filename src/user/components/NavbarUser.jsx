@@ -4,6 +4,8 @@ import { FaBars, FaTimes } from 'react-icons/fa';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const nomorMeja = localStorage.getItem('nomorMeja');
+
 const UserNavbar = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
@@ -38,29 +40,31 @@ const UserNavbar = () => {
           <NavLink
             to="/"
             className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${
-                isActive ? 'text-white' : 'text-white'
+              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
               }`
             }
           >
             Beranda
           </NavLink>
           <NavLink
-  to={`/menu?meja=${nomorMeja || ''}`}
-  className={({ isActive }) =>
-    `text-lg font-medium hover:text-amber-200 transition-colors ${
-      isActive ? 'text-white' : 'text-white'
-    }`
-  }
->
-  Menu
-</NavLink>
-
+            to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
+            onClick={(e) => {
+              if (!nomorMeja) {
+                e.preventDefault();
+                alert('❗ Silakan scan QR kode di meja dulu!');
+              }
+            }}
+            className={({ isActive }) =>
+              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
+              } ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`
+            }
+          >
+            Menu
+          </NavLink>
           <NavLink
             to="/status"
             className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${
-                isActive ? 'text-white' : 'text-white'
+              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
               }`
             }
           >
