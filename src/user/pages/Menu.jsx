@@ -9,12 +9,26 @@ import { FaShoppingCart } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
 
+import { useLocation } from 'react-router-dom';
+
+
 const Menu = () => {
   const [menuList, setMenuList] = useState([]);
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderInfo, setOrderInfo] = useState({ name: '', table: '', orderType: '' });
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const meja = params.get('meja');
+    if (meja) {
+      localStorage.setItem('nomorMeja', meja);
+    }
+  }, [location.search]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -10,13 +10,18 @@ const Home = () => {
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
   useEffect(() => {
-    const meja = query.get('meja');
+  const meja = query.get('meja');
 
-    if (meja) {
-      setNomorMeja(meja);
-      localStorage.setItem('nomorMeja', meja);
-    }
-  }, []);
+  if (meja) {
+    localStorage.setItem('nomorMeja', meja);
+    // ⬇️ Redirect otomatis ke halaman menu dengan query param
+    navigate(`/menu?meja=${meja}`, { replace: true });
+  } else {
+    // Kalau gak ada meja, hapus dari localStorage
+    localStorage.removeItem('nomorMeja');
+  }
+}, []);
+
 
   return (
     <>
