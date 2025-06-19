@@ -10,22 +10,21 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   const [step, setStep] = useState('pilihan');
   const [name, setName] = useState('');
   const [table, setTable] = useState('');
+  const [lockedTable, setLockedTable] = useState('');
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
   const [error, setError] = useState('');
   const [checkingTable, setCheckingTable] = useState(false);
-  const [lockedTable, setLockedTable] = useState('');
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaDariURL = params.get('meja');
-
     if (mejaDariURL && parseInt(mejaDariURL) >= 1 && parseInt(mejaDariURL) <= 30) {
-      localStorage.setItem('nomorMeja', mejaDariURL);
       setTable(mejaDariURL);
       setLockedTable(mejaDariURL);
+      localStorage.setItem('nomorMeja', mejaDariURL);
     } else {
       localStorage.removeItem('nomorMeja');
       setTable('');
@@ -174,31 +173,37 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                   placeholder="Nama lengkap"
                   className="w-full border px-3 py-2 mb-4 rounded-lg text-sm"
                 />
-                <p className="text-left text-sm mb-1 font-medium text-gray-700">Pilih Nomor Meja:</p>
-                <div className="grid grid-cols-5 gap-2 mb-4">
-                  {Array.from({ length: 30 }, (_, i) => {
-                    const no = (i + 1).toString();
-                    const selected = table === no;
-                    const locked = lockedTable;
-
-                    return (
-                      <button
-                        key={no}
-                        onClick={() => {
-                          if (!locked) setTable(no);
-                        }}
-                        disabled={locked && locked !== no}
-                        className={`py-2 rounded-lg text-sm font-semibold border transition text-center
-                          ${selected ? 'bg-amber-800 text-white border-amber-800' : ''}
-                          ${locked && locked !== no ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
-                          ${!selected && (!locked || locked === no) ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
-                        `}
-                      >
-                        Meja {no}
-                      </button>
-                    );
-                  })}
-                </div>
+                {lockedTable ? (
+                  <>
+                    <p className="text-left text-sm font-medium text-gray-700 mb-2">Nomor Meja Anda:</p>
+                    <div className="bg-gray-100 text-amber-900 font-bold py-2 rounded-lg text-sm">
+                      Meja {lockedTable}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-left text-sm font-medium text-gray-700 mb-2">Pilih Nomor Meja:</p>
+                    <div className="grid grid-cols-5 gap-2 mb-4">
+                      {Array.from({ length: 30 }, (_, i) => {
+                        const no = (i + 1).toString();
+                        const selected = table === no;
+                        return (
+                          <button
+                            key={no}
+                            onClick={() => setTable(no)}
+                            className={`py-2 rounded-lg text-sm font-semibold border transition text-center ${
+                              selected
+                                ? 'bg-amber-800 text-white border-amber-800'
+                                : 'bg-white text-amber-900 border-gray-300 hover:border-amber-500'
+                            }`}
+                          >
+                            Meja {no}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
                 {checkingTable && <p className="text-gray-500 text-sm mb-2">Mengecek ketersediaan meja...</p>}
                 {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
                 <div className="flex justify-end gap-3">
