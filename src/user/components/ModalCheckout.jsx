@@ -10,7 +10,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   const [step, setStep] = useState('pilihan');
   const [name, setName] = useState('');
   const [table, setTable] = useState('');
-  const [lockedTable, setLockedTable] = useState('');
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
   const [error, setError] = useState('');
@@ -18,20 +17,17 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  // Ambil nomor meja dari URL sekali saat load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mejaParam = params.get('meja');
-
-    if (mejaParam && /^[1-9]$|^1[0-9]$|^2[0-9]$|^30$/.test(mejaParam)) {
-      setTable(mejaParam);
-      setLockedTable(mejaParam);
-      localStorage.setItem('nomorMeja', mejaParam);
-    } else {
-      setTable('');
-      setLockedTable('');
-      localStorage.removeItem('nomorMeja');
+    const mejaFromURL = params.get('meja');
+    if (mejaFromURL) {
+      localStorage.setItem('nomorMeja', mejaFromURL);
+      setTable(mejaFromURL);
     }
   }, []);
+
+  const lockedTable = localStorage.getItem('nomorMeja');
 
   const handleSelectType = (selected) => {
     setType(selected);
@@ -100,9 +96,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       price: item.price,
     }));
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert);
+    const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
 
     if (itemsError) {
       console.error(itemsError);
@@ -116,14 +110,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
     setTimeout(() => {
       navigate('/status', {
-        state: {
-          name,
-          table,
-          type,
-          method,
-          cart,
-          total,
-        },
+        state: { name, table, type, method, cart, total },
       });
     }, 300);
   };
@@ -187,21 +174,13 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                 <div className="grid grid-cols-5 gap-2 mb-4">
                   {Array.from({ length: 30 }, (_, i) => {
                     const no = (i + 1).toString();
-                    const isSelected = table === no;
-                    const isLocked = lockedTable && lockedTable === no;
-                    const isDisabled = lockedTable && lockedTable !== no;
-
+                    const selected = lockedTable === no;
                     return (
                       <button
                         key={no}
-                        disabled={lockedTable ? isDisabled : true}
-                        onClick={() => {
-                          if (isLocked) setTable(no);
-                        }}
+                        disabled
                         className={`py-2 rounded-lg text-sm font-semibold border transition text-center
-                          ${isLocked ? 'bg-amber-800 text-white border-amber-800' : ''}
-                          ${isDisabled ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
-                          ${!lockedTable ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                          ${selected ? 'bg-amber-800 text-white border-amber-800' : 'bg-gray-100 text-gray-400 border-gray-200'}
                         `}
                       >
                         Meja {no}
