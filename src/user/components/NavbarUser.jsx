@@ -1,29 +1,43 @@
 // File: src/components/UserNavbar.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const nomorMeja = localStorage.getItem('nomorMeja');
-
 const UserNavbar = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
   const closeMenu = () => setShowMobileMenu(false);
+
+  // Update nomorMeja setiap kali komponen dirender
+  useEffect(() => {
+    const updateNomorMeja = () => {
+      const meja = localStorage.getItem('nomorMeja');
+      setNomorMeja(meja || '');
+    };
+
+    // trigger sekali saat mount
+    updateNomorMeja();
+
+    // dan setiap kali localStorage berubah
+    window.addEventListener('storage', updateNomorMeja);
+    return () => window.removeEventListener('storage', updateNomorMeja);
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.15, delayChildren: 0.2 }
+      transition: { staggerChildren: 0.15, delayChildren: 0.2 },
     },
-    exit: { opacity: 0 }
+    exit: { opacity: 0 },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    visible: { opacity: 1, y: 0 },
   };
 
   return (
@@ -37,15 +51,10 @@ const UserNavbar = () => {
 
         {/* Desktop Menu */}
         <nav className="hidden md:flex gap-10 ml-auto">
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
-              }`
-            }
-          >
+          <NavLink to="/" className="text-lg font-medium hover:text-amber-200 text-white">
             Beranda
           </NavLink>
+
           <NavLink
             to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
             onClick={(e) => {
@@ -54,20 +63,12 @@ const UserNavbar = () => {
                 alert('❗ Silakan scan QR kode di meja dulu!');
               }
             }}
-            className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
-              } ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`
-            }
+            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Menu
           </NavLink>
-          <NavLink
-            to="/status"
-            className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${isActive ? 'text-white' : 'text-white'
-              }`
-            }
-          >
+
+          <NavLink to="/status" className="text-lg font-medium hover:text-amber-200 text-white">
             Pesananmu
           </NavLink>
         </nav>
@@ -84,11 +85,10 @@ const UserNavbar = () => {
         </div>
       </div>
 
-      {/* Mobile Fullscreen Overlay */}
+      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {showMobileMenu && (
           <>
-            {/* Backdrop */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -98,7 +98,6 @@ const UserNavbar = () => {
               onClick={closeMenu}
             />
 
-            {/* Menu Content */}
             <motion.nav
               key="mobilemenu"
               initial={{ x: '100%' }}
@@ -120,7 +119,18 @@ const UserNavbar = () => {
                   </NavLink>
                 </motion.li>
                 <motion.li variants={itemVariants}>
-                  <NavLink to="/menu" onClick={closeMenu} className="hover:text-amber-300 transition">
+                  <NavLink
+                    to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
+                    onClick={(e) => {
+                      if (!nomorMeja) {
+                        e.preventDefault();
+                        alert('❗ Silakan scan QR di meja dahulu!');
+                      } else {
+                        closeMenu();
+                      }
+                    }}
+                    className={`hover:text-amber-300 transition ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
                     📋 Menu
                   </NavLink>
                 </motion.li>
