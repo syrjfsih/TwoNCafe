@@ -17,17 +17,19 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Ambil nomor meja dari URL sekali saat load
+  // Ambil meja dari query dan simpan ke state
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
     if (mejaFromURL) {
-      localStorage.setItem('nomorMeja', mejaFromURL);
       setTable(mejaFromURL);
+      localStorage.setItem('nomorMeja', mejaFromURL);
+    } else {
+      setTable(''); // Tidak ada meja = akses tidak valid
     }
   }, []);
 
-  const lockedTable = localStorage.getItem('nomorMeja');
+  const lockedTable = table;
 
   const handleSelectType = (selected) => {
     setType(selected);
@@ -35,7 +37,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    if (!name.trim() || !table) {
+    if (!name.trim() || !lockedTable) {
       setError('Nama dan nomor meja wajib diisi.');
       return;
     }
@@ -45,7 +47,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('id')
-      .eq('table_number', parseInt(table))
+      .eq('table_number', parseInt(lockedTable))
       .is('ended_at', null);
 
     setCheckingTable(false);
@@ -74,7 +76,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       .from('orders')
       .insert({
         name,
-        table_number: parseInt(table),
+        table_number: parseInt(lockedTable),
         order_type: type,
         payment_method: method,
         total,
@@ -104,13 +106,15 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       return;
     }
 
+    localStorage.removeItem('nomorMeja'); // Hapus nomor meja dari localStorage
+
     onClose();
     onResetCart();
     toast.success('Pesanan berhasil dikonfirmasi!');
 
     setTimeout(() => {
       navigate('/status', {
-        state: { name, table, type, method, cart, total },
+        state: { name, table: lockedTable, type, method, cart, total },
       });
     }, 300);
   };
@@ -227,7 +231,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                 <h2 className="text-xl font-bold text-amber-900 mb-4">Ringkasan Pesanan</h2>
                 <div className="text-sm text-left text-gray-800 mb-2">
                   <p><strong>Nama:</strong> {name}</p>
-                  <p><strong>No Meja:</strong> {table}</p>
+                  <p><strong>No Meja:</strong> {lockedTable}</p>
                   <p><strong>Tipe:</strong> {type === 'dinein' ? 'Dine In' : 'Take Away'}</p>
                   <p><strong>Metode:</strong> {method === 'qris' ? 'QRIS' : 'Tunai'}</p>
                 </div>

@@ -3,7 +3,7 @@ import Home from './pages/Home';
 import Menu from './pages/Menu';
 import Checkout from './pages/Checkout';
 import OrderStatus from './pages/OrderStatus';
-import SuccessPage from './pages/SuccessPage';
+import BlockedPage from './pages/BlockedPage';
 
 const UserApp = () => (
   <Routes>
@@ -11,7 +11,7 @@ const UserApp = () => (
     <Route path='/menu' element={<Menu />} />
     <Route path="/checkout" element={<Checkout />} />
     <Route path="/status" element={<OrderStatus />} />
-    <Route path="/success" element={<SuccessPage />} />
+    <Route path="/blocked" element={<BlockedPage />} />
   </Routes>
 );
 

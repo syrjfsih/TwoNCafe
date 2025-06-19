@@ -1,20 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/NavbarUser';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Home = () => {
   const query = useQuery();
-  const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja'));
+  const navigate = useNavigate();
+  const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
   useEffect(() => {
     const meja = query.get('meja');
+
     if (meja) {
       setNomorMeja(meja);
       localStorage.setItem('nomorMeja', meja);
+    } else {
+      // Jika tidak akses via barcode, redirect ke halaman notifikasi atau halaman default
+      setNomorMeja('');
+      localStorage.removeItem('nomorMeja');
     }
-  }, [query]);
+  }, []);
 
   return (
     <>
@@ -31,7 +37,10 @@ const Home = () => {
               Selamat Datang di <span className="text-white">TwoNCafe!</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl font-light">
-              Kamu sedang berada di <strong>Meja {nomorMeja || '...'}</strong>
+              {nomorMeja
+                ? <>Kamu sedang berada di <strong>Meja {nomorMeja}</strong></>
+                : <>Silakan <strong>scan QR</strong> di meja untuk memulai</>
+              }
             </p>
 
             {/* Search Bar */}
@@ -41,8 +50,12 @@ const Home = () => {
                   type="text"
                   placeholder="Ketik Makananmu"
                   className="flex-grow p-3 rounded-full outline-none text-gray-800 text-sm sm:text-base"
+                  disabled={!nomorMeja}
                 />
-                <button className="bg-amber-900 hover:bg-[#452121] text-white px-6 py-2 rounded-full font-semibold text-sm sm:text-base">
+                <button
+                  className="bg-amber-900 hover:bg-[#452121] text-white px-6 py-2 rounded-full font-semibold text-sm sm:text-base"
+                  disabled={!nomorMeja}
+                >
                   <i className="fa fa-search mr-1"></i> Cari
                 </button>
               </div>
@@ -60,7 +73,7 @@ const Home = () => {
               return (
                 <button
                   key={num}
-                  disabled={!isAktif}
+                  disabled
                   className={`rounded-lg p-3 font-semibold text-sm transition-all duration-300 ${
                     isAktif
                       ? 'bg-green-600 text-white cursor-default shadow-[0_0_15px_4px_rgba(34,197,94,0.7)] animate-pulse'
