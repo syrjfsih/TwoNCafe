@@ -17,18 +17,15 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Ambil meja dari URL PARAM
+  // Ambil parameter meja dari URL saat pertama kali
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
     if (mejaFromURL) {
       localStorage.setItem('nomorMeja', mejaFromURL);
-      setTable(mejaFromURL);
-    } else {
-      setTable('');
-      localStorage.removeItem('nomorMeja');
+      setTable(mejaFromURL); // ini penting agar langsung ke state
     }
-  }, [window.location.search]);
+  }, []);
 
   const lockedTable = localStorage.getItem('nomorMeja');
   const isLocked = !!lockedTable;
@@ -39,7 +36,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    if (!name.trim() || !table.trim()) {
+    if (!name.trim() || !table) {
       setError('Nama dan nomor meja wajib diisi.');
       return;
     }
