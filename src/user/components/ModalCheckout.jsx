@@ -17,13 +17,15 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Ambil parameter meja dari URL saat pertama kali
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
     if (mejaFromURL) {
+      setTable(mejaFromURL);
       localStorage.setItem('nomorMeja', mejaFromURL);
-      setTable(mejaFromURL); // ini penting agar langsung ke state
+    } else {
+      setTable('');
+      localStorage.removeItem('nomorMeja');
     }
   }, []);
 
@@ -36,7 +38,11 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    if (!name.trim() || !table) {
+    // Tambahan penting!
+    const currentTable = localStorage.getItem('nomorMeja');
+    setTable(currentTable);
+
+    if (!name.trim() || !currentTable) {
       setError('Nama dan nomor meja wajib diisi.');
       return;
     }
@@ -46,7 +52,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('id')
-      .eq('table_number', parseInt(table))
+      .eq('table_number', parseInt(currentTable))
       .is('ended_at', null);
 
     setCheckingTable(false);
@@ -140,6 +146,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               ✕
             </button>
 
+            {/* PILIH TIPE */}
             {step === 'pilihan' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-6">Makan disini atau bawa pulang?</h2>
@@ -162,6 +169,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* ISI DATA */}
             {step === 'data' && (
               <>
                 <h2 className="text-xl font-bold mb-4 text-amber-900">Data Pemesan</h2>
@@ -177,7 +185,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                   {Array.from({ length: 30 }, (_, i) => {
                     const no = (i + 1).toString();
                     const selected = table === no;
-                    const disabled = isLocked && no !== table;
+                    const disabled = isLocked && no !== lockedTable;
 
                     return (
                       <button
@@ -203,6 +211,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* PEMBAYARAN */}
             {step === 'pembayaran' && (
               <>
                 <h2 className="text-lg sm:text-xl font-bold text-amber-900 mb-4">Pilih Metode Pembayaran</h2>
@@ -228,6 +237,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* STRUK */}
             {step === 'struk' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-4">Ringkasan Pesanan</h2>
