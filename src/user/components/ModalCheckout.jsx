@@ -17,19 +17,18 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Ambil meja dari query dan simpan ke state
+  // Set meja dari URL hanya sekali
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
     if (mejaFromURL) {
-      setTable(mejaFromURL);
       localStorage.setItem('nomorMeja', mejaFromURL);
-    } else {
-      setTable(''); // Tidak ada meja = akses tidak valid
+      setTable(mejaFromURL);
     }
   }, []);
 
-  const lockedTable = table;
+  const lockedTable = localStorage.getItem('nomorMeja');
+  const isLocked = !!lockedTable;
 
   const handleSelectType = (selected) => {
     setType(selected);
@@ -37,7 +36,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    if (!name.trim() || !lockedTable) {
+    if (!name.trim() || !table) {
       setError('Nama dan nomor meja wajib diisi.');
       return;
     }
@@ -47,7 +46,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('id')
-      .eq('table_number', parseInt(lockedTable))
+      .eq('table_number', parseInt(table))
       .is('ended_at', null);
 
     setCheckingTable(false);
@@ -76,7 +75,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       .from('orders')
       .insert({
         name,
-        table_number: parseInt(lockedTable),
+        table_number: parseInt(table),
         order_type: type,
         payment_method: method,
         total,
@@ -106,15 +105,14 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       return;
     }
 
-    localStorage.removeItem('nomorMeja'); // Hapus nomor meja dari localStorage
-
+    localStorage.removeItem('nomorMeja');
     onClose();
     onResetCart();
     toast.success('Pesanan berhasil dikonfirmasi!');
 
     setTimeout(() => {
       navigate('/status', {
-        state: { name, table: lockedTable, type, method, cart, total },
+        state: { name, table, type, method, cart, total },
       });
     }, 300);
   };
@@ -178,13 +176,17 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                 <div className="grid grid-cols-5 gap-2 mb-4">
                   {Array.from({ length: 30 }, (_, i) => {
                     const no = (i + 1).toString();
-                    const selected = lockedTable === no;
+                    const selected = table === no;
+                    const disabled = isLocked && no !== table;
+
                     return (
                       <button
                         key={no}
-                        disabled
+                        disabled={disabled}
                         className={`py-2 rounded-lg text-sm font-semibold border transition text-center
-                          ${selected ? 'bg-amber-800 text-white border-amber-800' : 'bg-gray-100 text-gray-400 border-gray-200'}
+                          ${selected ? 'bg-amber-800 text-white border-amber-800 glow' : ''}
+                          ${disabled ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
+                          ${!selected && !disabled ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
                         `}
                       >
                         Meja {no}
@@ -231,7 +233,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                 <h2 className="text-xl font-bold text-amber-900 mb-4">Ringkasan Pesanan</h2>
                 <div className="text-sm text-left text-gray-800 mb-2">
                   <p><strong>Nama:</strong> {name}</p>
-                  <p><strong>No Meja:</strong> {lockedTable}</p>
+                  <p><strong>No Meja:</strong> {table}</p>
                   <p><strong>Tipe:</strong> {type === 'dinein' ? 'Dine In' : 'Take Away'}</p>
                   <p><strong>Metode:</strong> {method === 'qris' ? 'QRIS' : 'Tunai'}</p>
                 </div>
