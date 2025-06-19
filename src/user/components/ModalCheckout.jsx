@@ -17,15 +17,18 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Set meja dari URL hanya sekali
+  // Ambil meja dari URL PARAM
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
     if (mejaFromURL) {
       localStorage.setItem('nomorMeja', mejaFromURL);
       setTable(mejaFromURL);
+    } else {
+      setTable('');
+      localStorage.removeItem('nomorMeja');
     }
-  }, []);
+  }, [window.location.search]);
 
   const lockedTable = localStorage.getItem('nomorMeja');
   const isLocked = !!lockedTable;
@@ -36,7 +39,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    if (!name.trim() || !table) {
+    if (!name.trim() || !table.trim()) {
       setError('Nama dan nomor meja wajib diisi.');
       return;
     }
@@ -184,7 +187,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                         key={no}
                         disabled={disabled}
                         className={`py-2 rounded-lg text-sm font-semibold border transition text-center
-                          ${selected ? 'bg-amber-800 text-white border-amber-800 glow' : ''}
+                          ${selected ? 'bg-amber-800 text-white border-amber-800' : ''}
                           ${disabled ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : ''}
                           ${!selected && !disabled ? 'bg-white text-amber-900 border-gray-300 hover:border-amber-500' : ''}
                         `}
