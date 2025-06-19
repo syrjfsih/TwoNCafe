@@ -46,15 +46,16 @@ const UserNavbar = () => {
             Beranda
           </NavLink>
           <NavLink
-            to="/menu"
-            className={({ isActive }) =>
-              `text-lg font-medium hover:text-amber-200 transition-colors ${
-                isActive ? 'text-white' : 'text-white'
-              }`
-            }
-          >
-            Menu
-          </NavLink>
+  to={`/menu?meja=${nomorMeja || ''}`}
+  className={({ isActive }) =>
+    `text-lg font-medium hover:text-amber-200 transition-colors ${
+      isActive ? 'text-white' : 'text-white'
+    }`
+  }
+>
+  Menu
+</NavLink>
+
           <NavLink
             to="/status"
             className={({ isActive }) =>
