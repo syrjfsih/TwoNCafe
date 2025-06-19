@@ -59,7 +59,7 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Tombol ke halaman menu */}
+            {/* Tombol ke halaman menu
             <div className="mt-6">
               <button
                 onClick={() => navigate(`/menu?meja=${nomorMeja}`)}
@@ -68,7 +68,7 @@ const Home = () => {
               >
                 Buka Menu
               </button>
-            </div>
+            </div> */}
           </div>
         </div>
 
