@@ -11,9 +11,11 @@ const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Ti
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group"
+      className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group
+        max-[300px]:max-w-[240px] max-[300px]:mx-auto"
     >
-      <div className="relative h-36 sm:h-48 overflow-hidden">
+      {/* Gambar */}
+      <div className="relative h-32 sm:h-40 md:h-48 overflow-hidden">
         <img
           src={image || '/foto menu/default.jpg'}
           alt={name}
@@ -28,22 +30,25 @@ const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Ti
         </div>
       </div>
 
-      <div className="p-4 flex flex-col justify-between h-44">
+      {/* Konten */}
+      <div className="p-3 sm:p-4 flex flex-col justify-between h-44 sm:h-48 md:h-52">
         <div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-800 group-hover:text-amber-900 transition">
+          <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-800 group-hover:text-amber-900 transition">
             {name}
           </h3>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">
+          <p className="text-[10px] sm:text-xs md:text-sm text-gray-600 mt-1 line-clamp-2">
             {description}
           </p>
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm sm:text-xl font-bold text-amber-800">
+
+        {/* Harga & Tombol */}
+        <div className="mt-3 sm:mt-4 flex items-center justify-between">
+          <span className="text-sm sm:text-base md:text-lg font-bold text-amber-800">
             Rp {typeof price === 'number' ? price.toLocaleString('id-ID') : '0'}
           </span>
           <button
             onClick={handleClick}
-            className="bg-amber-900 text-white text-[10px] sm:text-sm px-2.5 sm:px-4 py-1 sm:py-2 rounded-full hover:bg-amber-800 transition font-semibold"
+            className="bg-amber-900 text-white text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1 rounded-full hover:bg-amber-800 transition font-semibold"
           >
             + Keranjang
           </button>
