@@ -1,7 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Tidak ada deskripsi', onAddToCart }) => {
+const MenuCard = ({
+  name = 'Tidak ada nama',
+  image,
+  price = 0,
+  description = 'Tidak ada deskripsi',
+  onAddToCart
+}) => {
   const handleClick = () => {
     onAddToCart({ name, image, price, description });
   };
@@ -11,11 +17,9 @@ const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Ti
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group
-        max-[300px]:max-w-[240px] max-[300px]:mx-auto"
+      className="w-full max-w-[240px] sm:max-w-none bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group mx-auto"
     >
-      {/* Gambar */}
-      <div className="relative h-32 sm:h-40 md:h-48 overflow-hidden">
+      <div className="relative h-32 xs:h-36 sm:h-40 md:h-44 lg:h-48 xl:h-52 overflow-hidden">
         <img
           src={image || '/foto menu/default.jpg'}
           alt={name}
@@ -25,13 +29,12 @@ const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Ti
             e.target.src = '/foto menu/default.jpg';
           }}
         />
-        <div className="absolute top-2 left-2 bg-amber-900 text-white text-[10px] sm:text-xs px-2 py-1 rounded shadow">
+        <div className="absolute top-2 left-2 bg-amber-900 text-white text-[9px] sm:text-xs px-2 py-0.5 rounded shadow">
           Recommended
         </div>
       </div>
 
-      {/* Konten */}
-      <div className="p-3 sm:p-4 flex flex-col justify-between h-44 sm:h-48 md:h-52">
+      <div className="p-3 sm:p-4 flex flex-col justify-between h-40 sm:h-44 md:h-48">
         <div>
           <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-800 group-hover:text-amber-900 transition">
             {name}
@@ -40,15 +43,13 @@ const MenuCard = ({ name = 'Tidak ada nama', image, price = 0, description = 'Ti
             {description}
           </p>
         </div>
-
-        {/* Harga & Tombol */}
         <div className="mt-3 sm:mt-4 flex items-center justify-between">
           <span className="text-sm sm:text-base md:text-lg font-bold text-amber-800">
             Rp {typeof price === 'number' ? price.toLocaleString('id-ID') : '0'}
           </span>
           <button
             onClick={handleClick}
-            className="bg-amber-900 text-white text-[10px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1 rounded-full hover:bg-amber-800 transition font-semibold"
+            className="bg-amber-900 text-white text-[10px] sm:text-xs px-3 sm:px-4 py-1.5 sm:py-2 rounded-full hover:bg-amber-800 transition font-semibold"
           >
             + Keranjang
           </button>
