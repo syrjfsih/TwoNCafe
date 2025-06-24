@@ -1,6 +1,6 @@
 // File: Dashboard.jsx
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import {
   LineChart,
@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '../../services/supabase';
+import { toast } from 'react-toastify';
 
 const Dashboard = () => {
   const [summary, setSummary] = useState({
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [tidakAdaPesanan, setTidakAdaPesanan] = useState(false);
   const [mejaAktif, setMejaAktif] = useState([]);
   const [loading, setLoading] = useState(true);
+  const prevMejaAktifRef = useRef([]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -65,7 +67,17 @@ const Dashboard = () => {
         .filter((o) => o.ended_at === null)
         .map((o) => o.table_number);
 
-      setMejaAktif([...new Set(mejaSedangAktif)]);
+      const mejaUnik = [...new Set(mejaSedangAktif.map((m) => parseInt(m)))];
+
+      // Deteksi meja baru aktif
+      const prev = prevMejaAktifRef.current;
+      const newlyActive = mejaUnik.filter((m) => !prev.includes(m));
+      if (newlyActive.length > 0) {
+        toast.info(`🔔 Meja ${newlyActive.join(', ')} baru saja aktif.`);
+      }
+      prevMejaAktifRef.current = mejaUnik;
+
+      setMejaAktif(mejaUnik);
 
       const trenDummy = {};
       for (let i = 6; i >= 0; i--) {
@@ -108,6 +120,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
