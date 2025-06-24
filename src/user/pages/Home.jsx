@@ -1,6 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import UserNavbar from '../components/NavbarUser';
+import { supabase } from '../../services/supabase';
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -12,13 +14,36 @@ const Home = () => {
   useEffect(() => {
     const meja = query.get('meja');
     if (meja) {
-      localStorage.setItem('nomorMeja', meja);
-      setNomorMeja(meja); // ✅ tidak redirect ke /menu, cukup simpan & tampilkan
+      checkIfMejaAvailable(meja);
     } else {
       localStorage.removeItem('nomorMeja');
       setNomorMeja('');
     }
   }, []);
+
+  const checkIfMejaAvailable = async (meja) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('table_number', parseInt(meja))
+      .is('ended_at', null)
+      .neq('status', 'selesai');
+
+    if (error) {
+      console.error('Gagal cek status meja:', error);
+      return;
+    }
+
+    if (data.length > 0) {
+      alert(`⚠️ Meja ${meja} sedang digunakan. Silakan scan barcode meja lain.`);
+      localStorage.removeItem('nomorMeja');
+      setNomorMeja('');
+      navigate('/'); // redirect ulang ke home bersih
+    } else {
+      localStorage.setItem('nomorMeja', meja);
+      setNomorMeja(meja);
+    }
+  };
 
   return (
     <>
@@ -58,17 +83,6 @@ const Home = () => {
                 </button>
               </div>
             </div>
-
-            {/* Tombol ke halaman menu
-            <div className="mt-6">
-              <button
-                onClick={() => navigate(`/menu?meja=${nomorMeja}`)}
-                className="bg-amber-800 hover:bg-amber-700 px-6 py-3 rounded-full text-white font-semibold text-sm sm:text-base"
-                disabled={!nomorMeja}
-              >
-                Buka Menu
-              </button>
-            </div> */}
           </div>
         </div>
 

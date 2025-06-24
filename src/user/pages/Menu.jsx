@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
 import MenuCard from '../components/MenuCard';
 import NavbarUser from '../components/NavbarUser';
@@ -8,9 +9,7 @@ import { toast } from 'react-toastify';
 import { FaShoppingCart } from 'react-icons/fa';
 import { motion } from 'framer-motion';
 import 'react-toastify/dist/ReactToastify.css';
-
-import { useLocation } from 'react-router-dom';
-
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const Menu = () => {
   const [menuList, setMenuList] = useState([]);
@@ -18,18 +17,48 @@ const Menu = () => {
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [orderInfo, setOrderInfo] = useState({ name: '', table: '', orderType: '' });
+  const [loading, setLoading] = useState(true);
 
   const location = useLocation();
+  const navigate = useNavigate();
 
+  // VALIDASI MEJA dari URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const meja = params.get('meja');
-    if (meja) {
-      localStorage.setItem('nomorMeja', meja);
+
+    if (!meja) {
+      toast.error("🚫 Akses menu hanya lewat QR meja.");
+      navigate('/');
+      return;
     }
+
+    checkMejaStatus(meja);
   }, [location.search]);
 
-  const [loading, setLoading] = useState(true);
+  const checkMejaStatus = async (meja) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('table_number', parseInt(meja))
+      .is('ended_at', null)
+      .neq('status', 'selesai');
+
+    if (error) {
+      console.error("Error checking meja:", error);
+      toast.error("Gagal memverifikasi meja.");
+      navigate('/');
+      return;
+    }
+
+    if (data.length > 0) {
+      toast.error(`⚠️ Meja ${meja} masih digunakan. Silakan tunggu pesanan sebelumnya selesai.`);
+      navigate('/');
+      return;
+    }
+
+    localStorage.setItem('nomorMeja', meja);
+  };
 
   useEffect(() => {
     fetchMenu();

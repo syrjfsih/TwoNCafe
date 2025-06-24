@@ -45,9 +45,19 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
 
   const handleSubmit = async () => {
     setLoading(true);
+
+    // Tambahkan ended_at hanya jika status = selesai
+    const updatePayload = {
+      status: status.toLowerCase()
+    };
+
+    if (status.toLowerCase() === 'selesai') {
+      updatePayload.ended_at = new Date().toISOString();
+    }
+
     const { error } = await supabase
       .from('orders')
-      .update({ status })
+      .update(updatePayload)
       .eq('id', orderId);
 
     setLoading(false);
@@ -58,8 +68,8 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
       return;
     }
 
-    if (fetchOrders) fetchOrders(); // Refresh data
-    if (onSave) onSave(status);     // Opsional, tergantung parent
+    if (fetchOrders) fetchOrders();
+    if (onSave) onSave(status);
     onClose();
   };
 
