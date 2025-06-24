@@ -1,5 +1,6 @@
+// File: Dashboard.jsx
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
   LineChart,
@@ -13,8 +14,6 @@ import {
 import { supabase } from '../../services/supabase';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-
   const [summary, setSummary] = useState({
     totalHariIni: 0,
     jumlahPesanan: 0,
@@ -24,6 +23,7 @@ const Dashboard = () => {
 
   const [pesananTerbaru, setPesananTerbaru] = useState([]);
   const [tidakAdaPesanan, setTidakAdaPesanan] = useState(false);
+  const [mejaAktif, setMejaAktif] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const today = new Date().toISOString().split('T')[0];
@@ -34,7 +34,7 @@ const Dashboard = () => {
     try {
       const { data: orders, error: orderErr } = await supabase
         .from('orders')
-        .select('id, name, table_number, total, created_at')
+        .select('id, name, table_number, total, created_at, ended_at')
         .order('created_at', { ascending: false });
 
       if (orderErr) throw orderErr;
@@ -48,7 +48,7 @@ const Dashboard = () => {
 
       const { data: menus, error: menuErr } = await supabase
         .from('menu')
-        .select('id');
+        .select('id, aktif');
 
       if (menuErr) throw menuErr;
 
@@ -60,6 +60,12 @@ const Dashboard = () => {
       const menuAktif = activeMenus.length;
 
       setTidakAdaPesanan(jumlahPesanan === 0);
+
+      const mejaSedangAktif = orders
+        .filter((o) => o.ended_at === null)
+        .map((o) => o.table_number);
+
+      setMejaAktif([...new Set(mejaSedangAktif)]);
 
       const trenDummy = {};
       for (let i = 6; i >= 0; i--) {
@@ -75,7 +81,10 @@ const Dashboard = () => {
         }
       });
 
-      const trenHarian = Object.entries(trenDummy).map(([tanggal, total]) => ({ tanggal, total }));
+      const trenHarian = Object.entries(trenDummy).map(([tanggal, total]) => ({
+        tanggal,
+        total,
+      }));
 
       const terbaru = orders.slice(0, 5).map((order) => {
         const items = orderItems.filter((i) => i.order_id === order.id);
@@ -99,7 +108,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchData();
-  },  []);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -174,6 +183,30 @@ const Dashboard = () => {
                   />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4 mb-8">
+              <h2 className="text-lg font-semibold text-gray-800 mb-3">
+                Status Semua Meja (1–30)
+              </h2>
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-3">
+                {Array.from({ length: 30 }, (_, i) => {
+                  const no = i + 1;
+                  const isAktif = mejaAktif.includes(no);
+                  return (
+                    <div
+                      key={no}
+                      className={`text-center px-3 py-2 rounded-lg font-semibold text-sm shadow ${
+                        isAktif
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-200 text-gray-500'
+                      }`}
+                    >
+                      Meja {no}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="bg-white rounded-lg shadow p-4">

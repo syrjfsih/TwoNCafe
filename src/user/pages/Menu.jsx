@@ -22,7 +22,6 @@ const Menu = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // VALIDASI MEJA dari URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const meja = params.get('meja');
@@ -94,26 +93,39 @@ const Menu = () => {
 
   const handleCheckout = async (paymentMethod) => {
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
     const payload = {
       name: orderInfo.name,
-      table_number: orderInfo.table,
+      table_number: parseInt(orderInfo.table),
       order_type: orderInfo.orderType,
       payment_method: paymentMethod,
-      item: cart.map(item => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity
-      })),
       total,
-      status: 'pending'
+      status: 'menunggu',
+      ended_at: null,
     };
 
-    const { data, error } = await supabase.from("orders").insert([payload]);
-    console.log("Insert result:", { data, error });
+    const { data: orderData, error: orderError } = await supabase
+      .from("orders")
+      .insert(payload)
+      .select()
+      .single();
 
-    if (error) {
-      toast.error("❌ Gagal menyimpan pesanan: " + error.message);
+    if (orderError) {
+      toast.error("❌ Gagal menyimpan pesanan: " + orderError.message);
+      return;
+    }
+
+    const itemsToInsert = cart.map((item) => ({
+      order_id: orderData.id,
+      menu_id: item.id,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
+    const { error: itemError } = await supabase.from('order_items').insert(itemsToInsert);
+
+    if (itemError) {
+      toast.error("❌ Gagal menyimpan item pesanan: " + itemError.message);
       return;
     }
 
@@ -122,6 +134,16 @@ const Menu = () => {
     setShowCart(false);
     setShowCheckout(false);
     setOrderInfo({ name: '', table: '', orderType: '' });
+    navigate('/status', {
+      state: {
+        name: orderInfo.name,
+        table: orderInfo.table,
+        orderType: orderInfo.orderType,
+        paymentMethod,
+        total,
+        cart,
+      }
+    });
   };
 
   const makanan = menuList.filter(item => item.kategori === 'makanan');

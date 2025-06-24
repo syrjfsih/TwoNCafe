@@ -38,7 +38,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleInputSubmit = async () => {
-    // Tambahan penting!
     const currentTable = localStorage.getItem('nomorMeja');
     setTable(currentTable);
 
@@ -77,11 +76,19 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   };
 
   const handleConfirm = async () => {
+    const currentTable = localStorage.getItem('nomorMeja');
+    const parsedTable = parseInt(currentTable);
+
+    if (!parsedTable || isNaN(parsedTable)) {
+      toast.error('Nomor meja tidak valid.');
+      return;
+    }
+
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
         name,
-        table_number: parseInt(table),
+        table_number: parsedTable,
         order_type: type,
         payment_method: method,
         total,
@@ -118,7 +125,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
     setTimeout(() => {
       navigate('/status', {
-        state: { name, table, type, method, cart, total },
+        state: { name, table: parsedTable, type, method, cart, total },
       });
     }, 300);
   };
@@ -146,7 +153,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               ✕
             </button>
 
-            {/* PILIH TIPE */}
+            {/* Steps render logic here */}
             {step === 'pilihan' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-6">Makan disini atau bawa pulang?</h2>
@@ -169,7 +176,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
-            {/* ISI DATA */}
             {step === 'data' && (
               <>
                 <h2 className="text-xl font-bold mb-4 text-amber-900">Data Pemesan</h2>
@@ -211,7 +217,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
-            {/* PEMBAYARAN */}
             {step === 'pembayaran' && (
               <>
                 <h2 className="text-lg sm:text-xl font-bold text-amber-900 mb-4">Pilih Metode Pembayaran</h2>
@@ -237,7 +242,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
-            {/* STRUK */}
             {step === 'struk' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-4">Ringkasan Pesanan</h2>
