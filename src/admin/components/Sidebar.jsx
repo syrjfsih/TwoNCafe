@@ -10,7 +10,7 @@ import {
 const Sidebar = () => {
   return (
     <aside className="w-64 min-h-screen bg-[#702F25] text-white p-6 hidden md:block shadow-md">
-      <h2 className="text-2xl font-bold mb-10 text-center">Two’nCafe</h2>
+      <h2 className="text-2xl font-bold mb-10 text-center">TwoNCafe</h2>
       <nav className="flex flex-col gap-4">
         <NavLink
           to="/admin/dashboard"
