@@ -31,6 +31,7 @@ const ManageOrders = () => {
         name,
         total,
         status,
+        table_number,
         order_items (
           menu_id,
           quantity,
@@ -52,6 +53,7 @@ const ManageOrders = () => {
       nama: order.name,
       total: order.total,
       status: order.status,
+      meja: order.table_number,
       menu: order.order_items
         .map(item => `${item.menu?.name || 'Menu'} x${item.quantity}`)
         .join(', ')
@@ -91,7 +93,6 @@ const ManageOrders = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-    console.log('🔄 Ubah status menjadi:', newStatus, 'untuk ID:', selectedOrderId);
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
@@ -100,7 +101,7 @@ const ManageOrders = () => {
     if (error) {
       toast.dismiss();
       toast.error('Gagal mengubah status');
-      console.error('❌ Supabase update error:', error);
+      console.error(error);
       return;
     }
 
@@ -173,6 +174,7 @@ const ManageOrders = () => {
               <tr>
                 <th className="px-4 py-3">No</th>
                 <th className="px-4 py-3">Nama</th>
+                <th className="px-4 py-3">Meja</th>
                 <th className="px-4 py-3">Menu</th>
                 <th className="px-4 py-3">Total</th>
                 <th className="px-4 py-3">Status</th>
@@ -184,6 +186,7 @@ const ManageOrders = () => {
                 <tr key={order.id} className="border-t hover:bg-orange-50 transition">
                   <td className="px-4 py-2">{index + 1}</td>
                   <td className="px-4 py-2">{order.nama}</td>
+                  <td className="px-4 py-2">Meja {order.meja}</td>
                   <td className="px-4 py-2">{order.menu}</td>
                   <td className="px-4 py-2">Rp. {order.total.toLocaleString()}</td>
                   <td className="px-4 py-2">
@@ -199,16 +202,16 @@ const ManageOrders = () => {
                       {order.status}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2 text-center flex justify-center gap-2">
                     <button
                       onClick={() => handleOpenModal(order.id)}
-                      className="text-sm text-blue-600 hover:underline mr-2"
+                      className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold px-3 py-1 rounded-md text-xs"
                     >
-                      Ubah Status
+                      Ubah
                     </button>
                     <button
                       onClick={() => handleDeleteClick(order.id)}
-                      className="text-sm text-red-600 hover:underline"
+                      className="bg-red-100 hover:bg-red-200 text-red-700 font-semibold px-3 py-1 rounded-md text-xs"
                     >
                       Hapus
                     </button>
@@ -217,7 +220,7 @@ const ManageOrders = () => {
               ))}
               {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="text-center py-4 text-gray-400">
+                  <td colSpan="7" className="text-center py-4 text-gray-400">
                     Tidak ada pesanan dengan status "{filterStatus}"
                   </td>
                 </tr>
