@@ -68,9 +68,19 @@ const UserNavbar = () => {
             Menu
           </NavLink>
 
-          <NavLink to="/status" className="text-lg font-medium hover:text-amber-200 text-white">
+          <NavLink
+            to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
+            onClick={(e) => {
+              if (!nomorMeja) {
+                e.preventDefault();
+                alert('❗ Silakan scan QR kode di meja dulu!');
+              }
+            }}
+            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
             Pesananmu
           </NavLink>
+
         </nav>
 
         {/* Hamburger Button */}
