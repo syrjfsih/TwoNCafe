@@ -232,12 +232,13 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
                     <span className="text-sm font-medium text-amber-900">Tunai</span>
                   </button>
                   <button
-                    onClick={() => handlePayment('qris')}
-                    className="flex flex-col items-center bg-gray-100 hover:bg-gray-200 py-4 rounded-xl shadow-sm transition"
+                    disabled
+                    className="flex flex-col items-center bg-gray-200 text-gray-400 py-4 rounded-xl shadow-sm cursor-not-allowed"
                   >
-                    <FaQrcode className="text-2xl text-amber-800 mb-2" />
-                    <span className="text-sm font-medium text-amber-900">QRIS</span>
+                    <FaQrcode className="text-2xl mb-2" />
+                    <span className="text-sm font-medium">QRIS (Segera hadir)</span>
                   </button>
+
                 </div>
               </>
             )}
