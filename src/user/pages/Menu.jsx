@@ -64,11 +64,16 @@ const Menu = () => {
   }, []);
 
   const fetchMenu = async () => {
-    const { data, error } = await supabase.from('menu').select('*');
+    const { data, error } = await supabase
+      .from('menu')
+      .select('*')
+      .eq('is_deleted', false); // ✅ hanya ambil menu aktif
+
     if (error) {
       toast.error('Gagal mengambil data menu!');
       return;
     }
+
     setMenuList(data);
     setLoading(false);
   };

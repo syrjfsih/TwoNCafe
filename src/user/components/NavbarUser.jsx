@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import { NavLink, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserNavbar = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -11,17 +13,13 @@ const UserNavbar = () => {
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
   const closeMenu = () => setShowMobileMenu(false);
 
-  // Update nomorMeja setiap kali komponen dirender
   useEffect(() => {
     const updateNomorMeja = () => {
       const meja = localStorage.getItem('nomorMeja');
       setNomorMeja(meja || '');
     };
 
-    // trigger sekali saat mount
     updateNomorMeja();
-
-    // dan setiap kali localStorage berubah
     window.addEventListener('storage', updateNomorMeja);
     return () => window.removeEventListener('storage', updateNomorMeja);
   }, []);
@@ -43,13 +41,11 @@ const UserNavbar = () => {
   return (
     <header className="bg-amber-900 shadow-md sticky top-0 z-50">
       <div className="max-w-8xl mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img src="/foto menu/logo.png" alt="TwoNCafe Logo" className="h-9 w-9" />
           <span className="text-2xl font-bold text-white">TwoNCafe</span>
         </Link>
 
-        {/* Desktop Menu */}
         <nav className="hidden md:flex gap-10 ml-auto">
           <NavLink to="/" className="text-lg font-medium hover:text-amber-200 text-white">
             Beranda
@@ -60,7 +56,7 @@ const UserNavbar = () => {
             onClick={(e) => {
               if (!nomorMeja) {
                 e.preventDefault();
-                alert('❗ Silakan scan QR kode di meja dulu!');
+                toast.error('❗ Silakan scan QR kode di meja dulu!');
               }
             }}
             className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -73,17 +69,15 @@ const UserNavbar = () => {
             onClick={(e) => {
               if (!nomorMeja) {
                 e.preventDefault();
-                alert('❗ Silakan scan QR kode di meja dulu!');
+                toast.error('❗ Silakan scan QR kode di meja dulu!');
               }
             }}
             className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Pesananmu
           </NavLink>
-
         </nav>
 
-        {/* Hamburger Button */}
         <div className="md:hidden">
           <button
             onClick={toggleMobileMenu}
@@ -95,7 +89,6 @@ const UserNavbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {showMobileMenu && (
           <>
@@ -128,13 +121,14 @@ const UserNavbar = () => {
                     🏠 Beranda
                   </NavLink>
                 </motion.li>
+
                 <motion.li variants={itemVariants}>
                   <NavLink
                     to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
                     onClick={(e) => {
                       if (!nomorMeja) {
                         e.preventDefault();
-                        alert('❗ Silakan scan QR di meja dahulu!');
+                        toast.error('❗ Silakan scan QR kode di meja dulu!');
                       } else {
                         closeMenu();
                       }
@@ -144,11 +138,24 @@ const UserNavbar = () => {
                     📋 Menu
                   </NavLink>
                 </motion.li>
+
                 <motion.li variants={itemVariants}>
-                  <NavLink to="/status" onClick={closeMenu} className="hover:text-amber-300 transition">
+                  <NavLink
+                    to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
+                    onClick={(e) => {
+                      if (!nomorMeja) {
+                        e.preventDefault();
+                        toast.error('❗ Silakan scan QR kode di meja dulu!');
+                      } else {
+                        closeMenu();
+                      }
+                    }}
+                    className={`hover:text-amber-300 transition ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
                     🧾 Pesananmu
                   </NavLink>
                 </motion.li>
+
                 <motion.li variants={itemVariants}>
                   <button
                     onClick={closeMenu}
