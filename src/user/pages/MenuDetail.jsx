@@ -2,12 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import { FaArrowLeft, FaShoppingCart } from 'react-icons/fa';
+import ModalCart from '../components/ModalCart';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const MenuDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [menu, setMenu] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState(() => {
+    const stored = localStorage.getItem('cart');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
     fetchMenu();
@@ -28,8 +36,24 @@ const MenuDetail = () => {
     setLoading(false);
   };
 
+  const handleAddToCart = () => {
+    const exists = cart.find((item) => item.id === menu.id);
+    let updatedCart;
+    if (exists) {
+      updatedCart = cart.map((item) =>
+        item.id === menu.id ? { ...item, quantity: item.quantity + 1 } : item
+      );
+    } else {
+      updatedCart = [...cart, { ...menu, quantity: 1 }];
+    }
+    setCart(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    toast.success(`${menu.name} ditambahkan ke keranjang!`);
+    setShowCart(true);
+  };
+
   if (loading) {
-    return <div className="text-center py-20 text-gray-600">Loading menu...</div>;
+    return <div className="text-center py-20 text-gray-600 animate-pulse">Loading menu...</div>;
   }
 
   if (!menu) {
@@ -37,38 +61,70 @@ const MenuDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white font-sans">
       {/* Header */}
-      <div className="bg-amber-900 text-white px-4 py-4 flex items-center justify-between shadow">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2">
+      <div className="bg-amber-900 text-white px-4 py-4 flex items-center justify-between shadow-md sticky top-0 z-50">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 hover:text-gray-300">
           <FaArrowLeft /> <span>Kembali</span>
         </button>
         <h1 className="text-xl font-bold">Detail Menu</h1>
-        <button className="text-white">
+        <button onClick={() => setShowCart(true)} className="text-white hover:text-gray-300">
           <FaShoppingCart size={20} />
         </button>
       </div>
 
       {/* Konten Menu */}
-      <div className="max-w-xl mx-auto px-4 py-8">
-        <img
-          src={menu.image_url || '/foto menu/default.jpg'}
-          alt={menu.name}
-          className="w-full h-64 object-cover rounded-xl shadow"
-        />
+      <div className="max-w-2xl mx-auto px-4 py-10">
+        <div className="bg-white rounded-xl shadow-xl overflow-hidden">
+          <img
+            src={menu.image || '/foto menu/default.jpg'}
+            alt={menu.name}
+            className="w-full h-64 sm:h-80 object-cover"
+          />
 
-        <h2 className="mt-6 text-2xl font-bold text-gray-800">{menu.name}</h2>
-        <p className="text-gray-600 text-sm mt-2 mb-4">{menu.description || 'Tidak ada deskripsi.'}</p>
+          <div className="p-6 sm:p-8">
+            <h2 className="text-3xl font-bold text-gray-800 mb-2">{menu.name}</h2>
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              {menu.description || 'Tidak ada deskripsi untuk menu ini.'}
+            </p>
 
-        <div className="flex justify-between items-center mt-4">
-          <span className="text-xl font-semibold text-amber-800">
-            Rp {menu.price?.toLocaleString()}
-          </span>
-          <button className="bg-amber-800 hover:bg-amber-700 text-white px-6 py-2 rounded-lg font-semibold">
-            Tambah ke Keranjang
-          </button>
+            <div className="flex justify-between items-center">
+              <span className="text-2xl font-bold text-amber-800">
+                Rp {menu.price?.toLocaleString()}
+              </span>
+              <button
+                onClick={handleAddToCart}
+                className="bg-amber-800 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-semibold shadow"
+              >
+                Tambah ke Keranjang
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <ModalCart
+        show={showCart}
+        onClose={() => setShowCart(false)}
+        cart={cart}
+        onResetCart={() => {
+          setCart([]);
+          localStorage.removeItem('cart');
+        }}
+        onQuantityChange={(id, delta) => {
+          const updated = cart.map(item =>
+            item.id === id ? { ...item, quantity: item.quantity + delta } : item
+          ).filter(item => item.quantity > 0);
+          setCart(updated);
+          localStorage.setItem('cart', JSON.stringify(updated));
+        }}
+        onRemoveItem={(id) => {
+          const updated = cart.filter(item => item.id !== id);
+          setCart(updated);
+          localStorage.setItem('cart', JSON.stringify(updated));
+        }}
+        onCheckout={() => navigate('/menu')}
+      />
     </div>
   );
 };

@@ -9,7 +9,7 @@ const UserApp = () => (
   <Routes>
     <Route path="/" element={<Home />} />
     <Route path='/menu' element={<Menu />} />
-    <Route path="/menudetail" element={<MenuDetail />} />
+    <Route path="/menu/:id" element={<MenuDetail />} />
     <Route path="/status" element={<OrderStatus />} />
     <Route path="/blocked" element={<BlockedPage />} />
   </Routes>
