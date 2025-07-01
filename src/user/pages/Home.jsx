@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import UserNavbar from '../components/NavbarUser';
 import { supabase } from '../../services/supabase';
 
@@ -14,6 +15,7 @@ const Home = () => {
   const [search, setSearch] = useState('');
   const [menuList, setMenuList] = useState([]);
   const [filteredMenu, setFilteredMenu] = useState([]);
+  const [selectedMenu, setSelectedMenu] = useState(null);
 
   useEffect(() => {
     const meja = query.get('meja');
@@ -79,6 +81,18 @@ const Home = () => {
     setFilteredMenu(filtered);
   };
 
+  const handleSelectMenu = (menu) => {
+    setSelectedMenu(menu);
+  };
+
+  const closeModal = () => {
+    setSelectedMenu(null);
+  };
+
+  const goToDetail = (id) => {
+    navigate(`/menu/${id}`);
+  };
+
   return (
     <>
       <UserNavbar />
@@ -120,23 +134,80 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Hasil Pencarian */}
-            {search && filteredMenu.length > 0 && (
-              <div className="mt-6 w-full max-w-3xl mx-auto bg-white bg-opacity-90 rounded-xl shadow p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {filteredMenu.map((item) => (
-                  <div key={item.id} className="flex flex-col items-center text-center">
-                    <img
-                      src={item.image_url || '/foto menu/default.jpg'}
-                      alt={item.name}
-                      className="w-24 h-24 object-cover rounded-full border border-amber-800 shadow mb-2"
-                    />
-                    <p className="text-sm font-semibold text-gray-700">{item.name}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Search Result Grid with Animation */}
+            <AnimatePresence>
+              {search && filteredMenu.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="mt-6 w-full max-w-3xl mx-auto bg-white bg-opacity-90 rounded-xl shadow p-4 grid grid-cols-2 sm:grid-cols-3 gap-4"
+                >
+                  {filteredMenu.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectMenu(item)}
+                      className="flex flex-col items-center text-center cursor-pointer hover:scale-105 transition-transform"
+                    >
+                      <img
+                        src={item.image || '/foto menu/default.jpg'}
+                        alt={item.name}
+                        className="w-24 h-24 object-cover rounded-full border border-amber-800 shadow mb-2"
+                      />
+                      <p className="text-sm font-semibold text-gray-700">{item.name}</p>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
+
+        {/* Modal Detail Menu */}
+        <AnimatePresence>
+          {selectedMenu && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+              onClick={closeModal}
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.8 }}
+                transition={{ duration: 0.3 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl text-left"
+              >
+                <img
+                  src={selectedMenu.image || '/foto menu/default.jpg'}
+                  alt={selectedMenu.name}
+                  className="w-full h-48 object-cover rounded-lg mb-4"
+                />
+                <h3 className="text-xl font-bold mb-2 text-gray-800">{selectedMenu.name}</h3>
+                <p className="text-sm text-gray-600 mb-4">{selectedMenu.description || 'Tidak ada deskripsi.'}</p>
+                <p className="text-lg font-semibold text-amber-800 mb-4">Rp {selectedMenu.price?.toLocaleString()}</p>
+                <div className="flex justify-between">
+                  <button
+                    onClick={closeModal}
+                    className="text-sm text-gray-500 hover:underline"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    onClick={() => goToDetail(selectedMenu.id)}
+                    className="bg-amber-800 hover:bg-amber-700 text-white px-4 py-2 text-sm font-semibold rounded"
+                  >
+                    Lihat Detail
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Grid 30 Meja */}
         <div className="py-8 px-4 sm:px-8 md:px-16 lg:px-32">
