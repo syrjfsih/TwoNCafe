@@ -11,6 +11,10 @@ const Home = () => {
   const navigate = useNavigate();
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
+  const [search, setSearch] = useState('');
+  const [menuList, setMenuList] = useState([]);
+  const [filteredMenu, setFilteredMenu] = useState([]);
+
   useEffect(() => {
     const meja = query.get('meja');
     if (meja) {
@@ -20,6 +24,12 @@ const Home = () => {
       setNomorMeja('');
     }
   }, []);
+
+  useEffect(() => {
+    if (nomorMeja) {
+      fetchMenu();
+    }
+  }, [nomorMeja]);
 
   const checkIfMejaAvailable = async (meja) => {
     const { data, error } = await supabase
@@ -38,11 +48,35 @@ const Home = () => {
       alert(`⚠️ Meja ${meja} sedang digunakan. Silakan scan barcode meja lain.`);
       localStorage.removeItem('nomorMeja');
       setNomorMeja('');
-      navigate('/'); // redirect ulang ke home bersih
+      navigate('/');
     } else {
       localStorage.setItem('nomorMeja', meja);
       setNomorMeja(meja);
     }
+  };
+
+  const fetchMenu = async () => {
+    const { data, error } = await supabase
+      .from('menu')
+      .select('*')
+      .eq('is_deleted', false);
+
+    if (error) {
+      console.error('Gagal ambil menu:', error);
+      return;
+    }
+
+    setMenuList(data);
+    setFilteredMenu(data);
+  };
+
+  const handleSearchChange = (e) => {
+    const keyword = e.target.value;
+    setSearch(keyword);
+    const filtered = menuList.filter((item) =>
+      item.name.toLowerCase().includes(keyword.toLowerCase())
+    );
+    setFilteredMenu(filtered);
   };
 
   return (
@@ -71,6 +105,8 @@ const Home = () => {
               <div className="bg-white rounded-full shadow-lg flex items-center px-3 py-1 w-full max-w-2xl">
                 <input
                   type="text"
+                  value={search}
+                  onChange={handleSearchChange}
                   placeholder="Ketik Makananmu"
                   className="flex-grow p-3 rounded-full outline-none text-gray-800 text-sm sm:text-base"
                   disabled={!nomorMeja}
@@ -83,6 +119,22 @@ const Home = () => {
                 </button>
               </div>
             </div>
+
+            {/* Hasil Pencarian */}
+            {search && filteredMenu.length > 0 && (
+              <div className="mt-6 w-full max-w-3xl mx-auto bg-white bg-opacity-90 rounded-xl shadow p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {filteredMenu.map((item) => (
+                  <div key={item.id} className="flex flex-col items-center text-center">
+                    <img
+                      src={item.image_url || '/foto menu/default.jpg'}
+                      alt={item.name}
+                      className="w-24 h-24 object-cover rounded-full border border-amber-800 shadow mb-2"
+                    />
+                    <p className="text-sm font-semibold text-gray-700">{item.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -110,7 +162,7 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Category Menu */}
+        {/* Kategori (bisa diubah agar interaktif) */}
         <div className="py-12 px-4 sm:px-8 md:px-16 lg:px-32 bg-gray-50">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-8 justify-items-center">
             {[
