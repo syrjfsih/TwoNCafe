@@ -74,12 +74,12 @@ const MenuDetail = () => {
       </div>
 
       {/* Konten Menu */}
-      <div className="max-w-2xl mx-auto px-4 py-10">
+      <div className="max-w-xl mx-auto px-4 py-10">
         <div className="bg-white rounded-xl shadow-xl overflow-hidden">
           <img
             src={menu.image || '/foto menu/default.jpg'}
             alt={menu.name}
-            className="w-full h-64 sm:h-80 object-cover"
+            className="w-full h-90 sm:h-100 object-cover"
           />
 
           <div className="p-6 sm:p-8">
