@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaMoneyBillWave, FaQrcode } from 'react-icons/fa';
 import { supabase } from '../../services/supabase';
 
-const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => {
+const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState('pilihan');
   const [name, setName] = useState('');
@@ -124,8 +124,8 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     toast.success('Pesanan berhasil dikonfirmasi!');
 
     setTimeout(() => {
-      navigate('/status', {
-        state: { name, table: parsedTable, type, method, cart, total },
+      navigate(`/status?nama=${encodeURIComponent(name)}&meja=${parsedTable}`, {
+        state: { type, method, cart, total }
       });
     }, 300);
   };

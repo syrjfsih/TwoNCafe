@@ -16,7 +16,6 @@ const Menu = () => {
   const [cart, setCart] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [orderInfo, setOrderInfo] = useState({ name: '', table: '', orderType: '' });
   const [loading, setLoading] = useState(true);
 
   const location = useLocation();
@@ -67,7 +66,7 @@ const Menu = () => {
     const { data, error } = await supabase
       .from('menu')
       .select('*')
-      .eq('is_deleted', false); // ✅ hanya ambil menu aktif
+      .eq('is_deleted', false);
 
     if (error) {
       toast.error('Gagal mengambil data menu!');
@@ -96,17 +95,24 @@ const Menu = () => {
     });
   };
 
-  const handleCheckout = async (paymentMethod) => {
+  const handleCheckout = async (paymentMethod, name, table, orderType) => {
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+    const orderItemsJSON = cart.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price
+    }));
+
     const payload = {
-      name: orderInfo.name,
-      table_number: parseInt(orderInfo.table),
-      order_type: orderInfo.orderType,
+      name,
+      table_number: parseInt(table),
+      order_type: orderType,
       payment_method: paymentMethod,
       total,
       status: 'menunggu',
       ended_at: null,
+      order_items: orderItemsJSON,
     };
 
     const { data: orderData, error: orderError } = await supabase
@@ -138,17 +144,8 @@ const Menu = () => {
     setCart([]);
     setShowCart(false);
     setShowCheckout(false);
-    setOrderInfo({ name: '', table: '', orderType: '' });
-    navigate('/status', {
-      state: {
-        name: orderInfo.name,
-        table: orderInfo.table,
-        orderType: orderInfo.orderType,
-        paymentMethod,
-        total,
-        cart,
-      }
-    });
+
+    navigate(`/status?nama=${encodeURIComponent(name)}&meja=${table}`);
   };
 
   const makanan = menuList.filter(item => item.kategori === 'makanan');
@@ -268,8 +265,7 @@ const Menu = () => {
           show={showCheckout}
           onClose={() => setShowCheckout(false)}
           onConfirm={({ name, table, orderType, paymentMethod }) => {
-            setOrderInfo({ name, table, orderType });
-            handleCheckout(paymentMethod);
+            handleCheckout(paymentMethod, name, table, orderType);
           }}
           cart={cart}
         />
