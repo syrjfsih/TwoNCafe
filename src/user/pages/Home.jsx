@@ -11,11 +11,12 @@ const Home = () => {
   const query = useQuery();
   const navigate = useNavigate();
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
-
   const [search, setSearch] = useState('');
   const [menuList, setMenuList] = useState([]);
   const [filteredMenu, setFilteredMenu] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState(null);
+  const [isOpen, setIsOpen] = useState(true);
+  const [jamOperasional, setJamOperasional] = useState('');
 
   useEffect(() => {
     const meja = query.get('meja');
@@ -28,10 +29,55 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (nomorMeja) {
+    if (nomorMeja && isOpen) {
       fetchMenu();
     }
-  }, [nomorMeja]);
+  }, [nomorMeja, isOpen]);
+
+  useEffect(() => {
+    const cekJamOperasional = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('settings')
+          .select('opening_time, closing_time')
+          .eq('id', 1)
+          .single();
+
+        if (error || !data) {
+          console.error('❌ Gagal ambil data jam operasional:', error);
+          return;
+        }
+
+        const opening = data.opening_time ?? '08:00';
+        const closing = data.closing_time ?? '22:00';
+
+        if (!opening.includes(':') || !closing.includes(':')) {
+          console.warn('❗ Format jam tidak valid');
+          return;
+        }
+
+        const [openHour, openMin] = opening.split(':').map(Number);
+        const [closeHour, closeMin] = closing.split(':').map(Number);
+
+        const now = new Date();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const openMinutes = openHour * 60 + openMin;
+        const closeMinutes = closeHour * 60 + closeMin;
+
+        const isOpen = nowMinutes >= openMinutes && nowMinutes < closeMinutes;
+
+        if (!isOpen) {
+          // misalnya redirect ke halaman info tutup
+          navigate('/blocked');
+        }
+
+      } catch (err) {
+        console.error('🚨 Error saat cek jam operasional:', err);
+      }
+    };
+
+    cekJamOperasional();
+  }, []);
 
   const checkIfMejaAvailable = async (meja) => {
     const { data, error } = await supabase
@@ -82,6 +128,7 @@ const Home = () => {
   };
 
   const handleSelectMenu = (menu) => {
+    if (!isOpen) return;
     setSelectedMenu(menu);
   };
 
@@ -90,6 +137,7 @@ const Home = () => {
   };
 
   const goToDetail = (id) => {
+    if (!isOpen) return;
     navigate(`/menu/${id}`);
   };
 
@@ -98,7 +146,6 @@ const Home = () => {
       <UserNavbar />
 
       <div className="w-full min-h-screen font-sans bg-white">
-        {/* Hero Section */}
         <div
           className="w-full h-[500px] bg-cover bg-[position:top_10%_center] relative"
           style={{ backgroundImage: "url('/foto menu/background.jpg')" }}
@@ -114,7 +161,12 @@ const Home = () => {
               }
             </p>
 
-            {/* Search Bar */}
+            {!isOpen && (
+              <p className="mt-4 text-sm sm:text-base text-red-400 font-medium">
+                Saat ini di luar jam operasional ({jamOperasional}). Pemesanan dinonaktifkan.
+              </p>
+            )}
+
             <div className="mt-10 flex justify-center">
               <div className="bg-white rounded-full shadow-lg flex items-center px-3 py-1 w-full max-w-2xl">
                 <input
@@ -123,20 +175,19 @@ const Home = () => {
                   onChange={handleSearchChange}
                   placeholder="Ketik Makananmu"
                   className="flex-grow p-3 rounded-full outline-none text-gray-800 text-sm sm:text-base"
-                  disabled={!nomorMeja}
+                  disabled={!nomorMeja || !isOpen}
                 />
                 <button
                   className="bg-amber-900 hover:bg-[#452121] text-white px-6 py-2 rounded-full font-semibold text-sm sm:text-base"
-                  disabled={!nomorMeja}
+                  disabled={!nomorMeja || !isOpen}
                 >
                   <i className="fa fa-search mr-1"></i> Cari
                 </button>
               </div>
             </div>
 
-            {/* Search Result Grid with Animation */}
             <AnimatePresence>
-              {search && filteredMenu.length > 0 && (
+              {isOpen && search && filteredMenu.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -164,9 +215,8 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Modal Detail Menu */}
         <AnimatePresence>
-          {selectedMenu && (
+          {isOpen && selectedMenu && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -209,7 +259,7 @@ const Home = () => {
           )}
         </AnimatePresence>
 
-        {/* Grid 30 Meja */}
+        {/* Grid Meja dan Kategori */}
         <div className="py-8 px-4 sm:px-8 md:px-16 lg:px-32">
           <h2 className="text-xl font-bold mb-4 text-gray-700">Meja Tersedia</h2>
           <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4">
@@ -220,11 +270,10 @@ const Home = () => {
                 <button
                   key={num}
                   disabled
-                  className={`rounded-lg p-3 font-semibold text-sm transition-all duration-300 ${
-                    isAktif
+                  className={`rounded-lg p-3 font-semibold text-sm transition-all duration-300 ${isAktif
                       ? 'bg-green-600 text-white cursor-default shadow-[0_0_15px_4px_rgba(34,197,94,0.7)] animate-pulse'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   Meja {num}
                 </button>
@@ -233,7 +282,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Kategori (bisa diubah agar interaktif) */}
         <div className="py-12 px-4 sm:px-8 md:px-16 lg:px-32 bg-gray-50">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-8 justify-items-center">
             {[

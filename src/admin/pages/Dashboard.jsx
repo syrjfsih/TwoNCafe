@@ -3,13 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { supabase } from '../../services/supabase';
 import { toast } from 'react-toastify';
@@ -28,12 +22,27 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const prevMejaAktifRef = useRef([]);
 
+  const [openingTime, setOpeningTime] = useState('08:00');
+  const [closingTime, setClosingTime] = useState('22:00');
+
   const today = new Date().toISOString().split('T')[0];
 
   const fetchData = async () => {
     setLoading(true);
-
     try {
+      const { data: settingsData, error: settingsErr } = await supabase
+        .from('settings')
+        .select('opening_time, closing_time')
+        .eq('id', 1)
+        .single();
+
+      if (settingsErr) throw settingsErr;
+
+      if (settingsData) {
+        setOpeningTime(settingsData.opening_time);
+        setClosingTime(settingsData.closing_time);
+      }
+
       const { data: orders, error: orderErr } = await supabase
         .from('orders')
         .select('id, name, table_number, total, created_at, ended_at')
@@ -55,7 +64,6 @@ const Dashboard = () => {
       if (menuErr) throw menuErr;
 
       const activeMenus = menus.filter((m) => m.aktif);
-
       const hariIni = orders.filter((o) => o.created_at.startsWith(today));
       const totalHariIni = hariIni.reduce((sum, o) => sum + o.total, 0);
       const jumlahPesanan = hariIni.length;
@@ -66,17 +74,14 @@ const Dashboard = () => {
       const mejaSedangAktif = orders
         .filter((o) => o.ended_at === null)
         .map((o) => o.table_number);
-
       const mejaUnik = [...new Set(mejaSedangAktif.map((m) => parseInt(m)))];
 
-      // Deteksi meja baru aktif
       const prev = prevMejaAktifRef.current;
       const newlyActive = mejaUnik.filter((m) => !prev.includes(m));
       if (newlyActive.length > 0) {
         toast.info(`🔔 Meja ${newlyActive.join(', ')} baru saja aktif.`);
       }
       prevMejaAktifRef.current = mejaUnik;
-
       setMejaAktif(mejaUnik);
 
       const trenDummy = {};
@@ -118,6 +123,22 @@ const Dashboard = () => {
     setLoading(false);
   };
 
+  const simpanJamOperasional = async () => {
+    const { error } = await supabase
+      .from('settings')
+      .update({
+        opening_time: openingTime,
+        closing_time: closingTime,
+      })
+      .eq('id', 1);
+
+    if (error) {
+      toast.error('❌ Gagal menyimpan jam operasional');
+    } else {
+      toast.success('✅ Jam operasional berhasil disimpan');
+    }
+  };
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
@@ -138,6 +159,36 @@ const Dashboard = () => {
               className="w-10 h-10 rounded-full border-2 border-[#702F25]"
             />
           </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-3">Jam Operasional</h2>
+          <div className="grid grid-cols-2 gap-4 max-w-md mb-3">
+            <div>
+              <label className="text-sm text-gray-700">Jam Buka</label>
+              <input
+                type="time"
+                value={openingTime}
+                onChange={(e) => setOpeningTime(e.target.value)}
+                className="w-full border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#702F25] outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Jam Tutup</label>
+              <input
+                type="time"
+                value={closingTime}
+                onChange={(e) => setClosingTime(e.target.value)}
+                className="w-full border px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-[#702F25] outline-none"
+              />
+            </div>
+          </div>
+          <button
+            onClick={simpanJamOperasional}
+            className="px-4 py-2 bg-[#702F25] text-white rounded-md text-sm hover:bg-[#5a241d]"
+          >
+            Simpan Jam Operasional
+          </button>
         </div>
 
         {loading ? (
@@ -210,11 +261,10 @@ const Dashboard = () => {
                   return (
                     <div
                       key={no}
-                      className={`text-center px-3 py-2 rounded-lg font-semibold text-sm shadow ${
-                        isAktif
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-200 text-gray-500'
-                      }`}
+                      className={`text-center px-3 py-2 rounded-lg font-semibold text-sm shadow ${isAktif
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                        }`}
                     >
                       Meja {no}
                     </div>
