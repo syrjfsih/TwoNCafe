@@ -12,10 +12,10 @@ const StatusBadge = ({ status }) => {
   let color = 'text-yellow-400';
   let icon = <FaClock />;
 
-  if (status === 'diproses') {
+  if (status?.toLowerCase() === 'diproses') {
     color = 'text-blue-400';
     icon = <FaSpinner className="animate-spin" />;
-  } else if (status === 'selesai') {
+  } else if (status?.toLowerCase() === 'selesai') {
     color = 'text-green-600';
     icon = <FaCheckCircle />;
   }
@@ -25,7 +25,7 @@ const StatusBadge = ({ status }) => {
       className={`flex items-center gap-2 px-3 py-1 text-sm rounded-full border ${color} border-current font-semibold`}
     >
       {icon}
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {status?.charAt(0).toUpperCase() + status?.slice(1)}
     </span>
   );
 };
@@ -46,11 +46,10 @@ const OrderStatus = () => {
     if (!name.trim() || !table.trim()) return;
 
     setLoading(true);
-
     const { data, error } = await supabase
       .from('orders')
-      .select('*')
-      .eq('name', name.trim())
+      .select('*, order_items(*, menu:menu_id(name))')
+      .ilike('name', name.trim()) // insensitive case
       .eq('table_number', parseInt(table))
       .order('created_at', { ascending: false })
       .limit(1)
@@ -69,7 +68,7 @@ const OrderStatus = () => {
 
   useEffect(() => {
     if (name && table) fetchOrder();
-    const interval = setInterval(fetchOrder, 10000); // Auto refresh setiap 10 detik
+    const interval = setInterval(fetchOrder, 10000); // refresh 10s
     return () => clearInterval(interval);
   }, [name, table]);
 
@@ -81,7 +80,7 @@ const OrderStatus = () => {
           Status Pesananmu
         </h1>
 
-        {/* Input manual hanya jika URL tidak valid */}
+        {/* Form jika tidak ada query nama/meja */}
         {(!namaQuery || !mejaQuery) && (
           <div className="max-w-md mx-auto space-y-4 mb-6">
             <input
@@ -143,21 +142,25 @@ const OrderStatus = () => {
 
             <div>
               <p className="font-semibold text-amber-900 mb-2">Rincian Pesanan:</p>
-              <ul className="divide-y divide-gray-200 text-sm">
-                {(order.order_items || []).map((item, index) => (
-                  <li key={index} className="py-2 flex justify-between items-start">
-                    <div>
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
+              {order.order_items?.length > 0 ? (
+                <ul className="divide-y divide-gray-200 text-sm">
+                  {order.order_items.map((item, index) => (
+                    <li key={index} className="py-2 flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800">{item.menu?.name || 'Item tidak ditemukan'}</p>
+                        <p className="text-xs text-gray-500">
+                          {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                      <p className="text-amber-800 font-semibold">
+                        Rp {(item.price * item.quantity).toLocaleString('id-ID')}
                       </p>
-                    </div>
-                    <p className="text-amber-800 font-semibold">
-                      Rp {(item.price * item.quantity).toLocaleString('id-ID')}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 italic">Belum ada detail pesanan.</p>
+              )}
             </div>
 
             <div className="text-right text-lg font-bold text-amber-900 border-t pt-4">
