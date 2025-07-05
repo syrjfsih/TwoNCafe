@@ -78,8 +78,17 @@ const Menu = () => {
   };
 
   const handleAddToCart = (item) => {
+    if (item.stock === 0) {
+      toast.warning("Stok habis, tidak bisa dipesan!");
+      return;
+    }
+
     const exists = cart.find((cartItem) => cartItem.id === item.id);
     if (exists) {
+      if (exists.quantity + 1 > item.stock) {
+        toast.warning("Jumlah melebihi stok tersedia!");
+        return;
+      }
       setCart(cart.map((cartItem) =>
         cartItem.id === item.id
           ? { ...cartItem, quantity: cartItem.quantity + 1 }
@@ -97,6 +106,17 @@ const Menu = () => {
 
   const handleCheckout = async (paymentMethod, name, table, orderType) => {
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    // Validasi stok sebelum checkout
+    const isOutOfStock = cart.some(item => {
+      const menu = menuList.find(menu => menu.id === item.id);
+      return !menu || item.quantity > menu.stock;
+    });
+
+    if (isOutOfStock) {
+      toast.error("❌ Ada item yang stok-nya tidak mencukupi!");
+      return;
+    }
 
     const orderItemsJSON = cart.map(item => ({
       name: item.name,
@@ -140,6 +160,18 @@ const Menu = () => {
       return;
     }
 
+    // Update stok di Supabase
+    for (let item of cart) {
+      const { error: stokError } = await supabase
+        .from('menu')
+        .update({ stock: item.stock - item.quantity })
+        .eq('id', item.id);
+
+      if (stokError) {
+        console.error(`❌ Gagal update stok ${item.name}:`, stokError);
+      }
+    }
+
     toast.success("✅ Pesanan berhasil disimpan!");
     setCart([]);
     setShowCart(false);
@@ -181,13 +213,15 @@ const Menu = () => {
                       name={item.name}
                       description={item.description}
                       price={item.price}
+                      stock={item.stock}
                       onAddToCart={() =>
                         handleAddToCart({
                           id: item.id,
                           name: item.name,
                           price: item.price,
                           image: item.image,
-                          description: item.description
+                          description: item.description,
+                          stock: item.stock
                         })
                       }
                     />
@@ -207,13 +241,15 @@ const Menu = () => {
                       name={item.name}
                       description={item.description}
                       price={item.price}
+                      stock={item.stock}
                       onAddToCart={() =>
                         handleAddToCart({
                           id: item.id,
                           name: item.name,
                           price: item.price,
                           image: item.image,
-                          description: item.description
+                          description: item.description,
+                          stock: item.stock
                         })
                       }
                     />

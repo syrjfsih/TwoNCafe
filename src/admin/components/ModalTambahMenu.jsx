@@ -10,6 +10,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
     deskripsi: '',
     gambar: null,
     kategori: '',
+    stok: '',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,15 +24,13 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
   };
 
   const handleSubmit = async () => {
-    if (!form.nama || !form.harga || !form.gambar || !form.kategori) {
-      if (!form.kategori) {
-        toast.error('🚫 Pilih dulu dong kategorinya...\n🍕 atau 🥤 ya, bukan "Bingung"?', {
-          icon: '🍽️',
-          transition: Slide,
-        });
-      } else {
-        toast.error('⚠️ Nama, harga, dan gambar wajib diisi!', { transition: Slide });
-      }
+    if (!form.nama || !form.harga || !form.gambar || !form.kategori || !form.stok) {
+      toast.error('⚠️ Semua field wajib diisi, termasuk stok!', { transition: Slide });
+      return;
+    }
+
+    if (parseInt(form.stok) < 0) {
+      toast.error('🚫 Stok tidak boleh kurang dari 0!', { transition: Slide });
       return;
     }
 
@@ -56,6 +55,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
         description: form.deskripsi,
         image: urlData.publicUrl,
         kategori: form.kategori.toLowerCase(),
+        stock: parseInt(form.stok),
       };
 
       const { error: insertError } = await supabase.from('menu').insert([insertData]);
@@ -64,7 +64,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
 
       toast.success('✅ Menu berhasil ditambahkan!', { icon: '🧾', transition: Slide });
       onSave(insertData);
-      setForm({ nama: '', harga: '', deskripsi: '', gambar: null, kategori: '' });
+      setForm({ nama: '', harga: '', deskripsi: '', gambar: null, kategori: '', stok: '' });
       onClose();
     } catch (err) {
       toast.error(`❌ ${err.message}`, { transition: Slide });
@@ -97,6 +97,15 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        <label className="block text-sm mb-1">Stok</label>
+        <input
+          name="stok"
+          type="number"
+          value={form.stok}
+          onChange={handleChange}
+          className="w-full mb-3 border px-3 py-2 rounded text-sm"
+        />
+
         <label className="block text-sm mb-1">Deskripsi</label>
         <textarea
           name="deskripsi"
@@ -113,8 +122,8 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         >
           <option value="">🍽️ Pilih Kategori</option>
-          <option value="makanan">🍕 makanan</option>
-          <option value="minuman">🥤 minuman</option>
+          <option value="makanan">🍕 Makanan</option>
+          <option value="minuman">🥤 Minuman</option>
         </select>
 
         <label className="block text-sm mb-1">Upload Gambar</label>

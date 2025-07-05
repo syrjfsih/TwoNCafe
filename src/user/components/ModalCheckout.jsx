@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaMoneyBillWave, FaQrcode } from 'react-icons/fa';
 import { supabase } from '../../services/supabase';
 
-const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) => {
+const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => {
   const navigate = useNavigate();
   const [step, setStep] = useState('pilihan');
   const [name, setName] = useState('');
@@ -84,6 +84,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
       return;
     }
 
+    // 1. Simpan data order utama
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -93,6 +94,8 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
         payment_method: method,
         total,
         created_at: new Date().toISOString(),
+        status: 'menunggu',
+        ended_at: null
       })
       .select()
       .single();
@@ -103,6 +106,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
       return;
     }
 
+    // 2. Simpan detail pesanan
     const itemsToInsert = cart.map((item) => ({
       order_id: orderData.id,
       menu_id: item.id,
@@ -111,17 +115,31 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
     }));
 
     const { error: itemsError } = await supabase.from('order_items').insert(itemsToInsert);
-
     if (itemsError) {
       console.error(itemsError);
       toast.error('Gagal menyimpan detail pesanan.');
       return;
     }
 
+    // 3. Update stok menu
+    for (let item of cart) {
+      const { error: stockError } = await supabase
+        .from('menu')
+        .update({ stock: item.stock - item.quantity })
+        .eq('id', item.id);
+
+      if (stockError) {
+        console.error(stockError);
+        toast.error(`Gagal mengurangi stok untuk ${item.name}`);
+        return;
+      }
+    }
+
+    // 4. Reset & navigasi
     localStorage.removeItem('nomorMeja');
     onClose();
     onResetCart();
-    toast.success('Pesanan berhasil dikonfirmasi!');
+    toast.success('✅ Pesanan berhasil dikonfirmasi!');
 
     setTimeout(() => {
       navigate(`/status?nama=${encodeURIComponent(name)}&meja=${parsedTable}`, {
@@ -153,7 +171,9 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
               ✕
             </button>
 
-            {/* Steps render logic here */}
+            {/* === STEP PILIHAN / DATA / PEMBAYARAN / STRUK === */}
+            {/* (kode step tetap sama seperti sebelumnya) */}
+
             {step === 'pilihan' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-6">Makan disini atau bawa pulang?</h2>
@@ -238,7 +258,6 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => { } }) =>
                     <FaQrcode className="text-2xl mb-2" />
                     <span className="text-sm font-medium">QRIS (Segera hadir)</span>
                   </button>
-
                 </div>
               </>
             )}

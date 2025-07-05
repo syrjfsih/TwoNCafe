@@ -8,6 +8,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
     deskripsi: '',
     gambar: null,
     kategori: '',
+    stok: '',
     previewUrl: ''
   });
 
@@ -19,6 +20,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
         deskripsi: initialData.deskripsi || initialData.description || '',
         gambar: null,
         kategori: initialData.kategori || '',
+        stok: initialData.stok || initialData.stock || 0,
         previewUrl: initialData.image || initialData.gambar || ''
       });
     }
@@ -71,13 +73,14 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
       finalImageUrl = publicUrl.publicUrl;
     }
 
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from('menu')
       .update({
         name: form.nama,
         price: parseInt(form.harga),
         description: form.deskripsi,
         kategori: form.kategori.toLowerCase(),
+        stock: parseInt(form.stok || 0),
         image: finalImageUrl
       })
       .eq('id', initialData.id);
@@ -111,6 +114,15 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           name="harga"
           type="number"
           value={form.harga}
+          onChange={handleChange}
+          className="w-full mb-3 border px-3 py-2 rounded text-sm"
+        />
+
+        <label className="block text-sm mb-1">Stok</label>
+        <input
+          name="stok"
+          type="number"
+          value={form.stok}
           onChange={handleChange}
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />

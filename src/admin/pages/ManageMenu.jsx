@@ -22,7 +22,7 @@ const ManageMenu = () => {
     const { data, error } = await supabase
       .from('menu')
       .select('*')
-      .eq('is_deleted', false) // hanya menu yang belum "dihapus"
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false });
 
     if (!error) setMenuList(data);
@@ -44,15 +44,12 @@ const ManageMenu = () => {
   const confirmDelete = async () => {
     if (!selectedMenu?.id) return;
 
-    // Soft delete, tidak menghapus permanen
     const { error } = await supabase
       .from('menu')
       .update({ is_deleted: true })
       .eq('id', selectedMenu.id);
 
-    if (error) {
-      console.error('Gagal soft delete menu:', error);
-    }
+    if (error) console.error('Gagal soft delete menu:', error);
 
     setShowHapusModal(false);
     fetchMenu();
@@ -64,7 +61,10 @@ const ManageMenu = () => {
       price: parseInt(menuBaru.harga),
       image: menuBaru.gambar,
       description: menuBaru.deskripsi,
-      is_deleted: false, // default tidak dihapus
+      kategori: menuBaru.kategori?.toLowerCase(),
+      stock: parseInt(menuBaru.stok || 0),
+      aktif: true,
+      is_deleted: false,
     };
     await supabase.from('menu').insert([data]);
     setShowTambahModal(false);
@@ -79,6 +79,8 @@ const ManageMenu = () => {
       price: parseInt(menuData.harga),
       image: menuData.gambar,
       description: menuData.deskripsi,
+      kategori: menuData.kategori?.toLowerCase(),
+      stock: parseInt(menuData.stok || 0),
     };
 
     await supabase.from('menu').update(updateData).eq('id', selectedMenu.id);
@@ -102,6 +104,7 @@ const ManageMenu = () => {
               name={menu.name}
               description={menu.description}
               price={menu.price}
+              stock={menu.stock}
               onEdit={() => handleEdit(menu)}
               onDelete={() => handleDelete(menu)}
             />

@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 
-const MenuCard = ({ image, name, description, price, onEdit, onDelete }) => {
+const MenuCard = ({ image, name, description, price, stock = 0, onEdit, onDelete }) => {
   const [loading, setLoading] = useState(true);
   const fallbackImage = '/foto menu/default.jpg';
 
   return (
     <div className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full p-4 border border-gray-200">
       {/* Gambar */}
-      <div className="relative w-full h-40 overflow-hidden rounded-xl mb-3 border">
+      <div className="relative w-full h-40 overflow-hidden rounded-xl mb-2 border">
         {loading && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
         <img
           src={image}
@@ -20,6 +20,19 @@ const MenuCard = ({ image, name, description, price, onEdit, onDelete }) => {
           }}
           className={`w-full h-full object-cover rounded-xl transition ${loading ? 'hidden' : 'block'}`}
         />
+
+        {/* Badge stok */}
+        <div className="absolute bottom-1 right-1">
+          {stock <= 0 ? (
+            <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow">
+              Stok Habis
+            </span>
+          ) : (
+            <span className="bg-amber-700 text-white text-xs font-semibold px-2 py-1 rounded shadow">
+              Stok: {stock}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Informasi */}

@@ -63,14 +63,31 @@ const ModalCart = ({
                         <div className="flex items-center gap-2 mt-1">
                           <button
                             onClick={() => onQuantityChange(item.id, -1)}
-                            className="bg-gray-200 px-2 rounded"
-                          >-</button>
+                            disabled={item.quantity <= 1}
+                            className={`px-2 rounded font-bold transition ${
+                              item.quantity <= 1
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-red-200 hover:bg-red-300 text-red-700'
+                            }`}
+                          >
+                            -
+                          </button>
                           <span>{item.quantity}</span>
                           <button
                             onClick={() => onQuantityChange(item.id, 1)}
-                            className="bg-gray-200 px-2 rounded"
-                          >+</button>
+                            disabled={item.quantity >= item.stock}
+                            className={`px-2 rounded font-bold transition ${
+                              item.quantity >= item.stock
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-green-200 hover:bg-green-300 text-green-700'
+                            }`}
+                          >
+                            +
+                          </button>
                         </div>
+                        <p className="text-[10px] text-gray-500 italic">
+                          Stok tersedia: {item.stock}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-amber-800 font-semibold text-sm">
