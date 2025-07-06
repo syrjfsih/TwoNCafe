@@ -1,12 +1,9 @@
+// File: src/user/pages/OrderStatus.jsx
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import UserNavbar from '../components/NavbarUser';
-import {
-  FaClock,
-  FaCheckCircle,
-  FaSpinner,
-} from 'react-icons/fa';
+import { FaClock, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 
 const StatusBadge = ({ status }) => {
   let color = 'text-yellow-400';
@@ -21,9 +18,7 @@ const StatusBadge = ({ status }) => {
   }
 
   return (
-    <span
-      className={`flex items-center gap-2 px-3 py-1 text-sm rounded-full border ${color} border-current font-semibold`}
-    >
+    <span className={`flex items-center gap-2 px-3 py-1 text-sm rounded-full border ${color} border-current font-semibold`}>
       {icon}
       {status?.charAt(0).toUpperCase() + status?.slice(1)}
     </span>
@@ -49,7 +44,7 @@ const OrderStatus = () => {
     const { data, error } = await supabase
       .from('orders')
       .select('*, order_items(*, menu:menu_id(name))')
-      .ilike('name', name.trim()) // insensitive case
+      .ilike('name', name.trim())
       .eq('table_number', parseInt(table))
       .order('created_at', { ascending: false })
       .limit(1)
@@ -68,7 +63,7 @@ const OrderStatus = () => {
 
   useEffect(() => {
     if (name && table) fetchOrder();
-    const interval = setInterval(fetchOrder, 10000); // refresh 10s
+    const interval = setInterval(fetchOrder, 10000);
     return () => clearInterval(interval);
   }, [name, table]);
 
@@ -80,8 +75,7 @@ const OrderStatus = () => {
           Status Pesananmu
         </h1>
 
-        {/* Form jika tidak ada query nama/meja */}
-        {(!namaQuery || !mejaQuery) && (
+        {!namaQuery || !mejaQuery ? (
           <div className="max-w-md mx-auto space-y-4 mb-6">
             <input
               type="text"
@@ -104,22 +98,32 @@ const OrderStatus = () => {
               Cek Status
             </button>
           </div>
-        )}
-
-        {loading && (
+        ) : loading ? (
           <div className="text-center text-gray-500 font-medium mt-6">
             ⏳ Memuat pesanan...
           </div>
-        )}
+        ) : notFound ? (
+          <div className="text-center text-yellow-700 font-medium mt-6">
+            ⚠️ Tidak ada pesanan ditemukan.
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-amber-200 space-y-6">
+            {/* 🎉 Section Success */}
+            <div className="text-center">
+              <img src="/foto-icon/succes.png" alt="Success" className="w-24 mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-amber-900">Pesanan Berhasil!</h2>
+              <p className="text-sm text-gray-700 mt-1">
+                Silakan bayar ke kasir agar pesananmu segera diproses.
+              </p>
+            </div>
 
-        {!loading && order && (
-          <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md border border-gray-200 space-y-4">
-            <div className="flex justify-between items-center">
+            {/* 🧾 Ringkasan */}
+            <div className="flex justify-between items-center border-b pb-2">
               <div>
-                <p className="text-lg font-bold text-amber-900">
+                <p className="text-base font-bold text-amber-900">
                   Pesanan #{order.id.slice(0, 8)}
                 </p>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-600">
                   Dibuat: {new Date(order.created_at).toLocaleString('id-ID', {
                     day: 'numeric',
                     month: 'long',
@@ -132,46 +136,37 @@ const OrderStatus = () => {
               <StatusBadge status={order.status || 'menunggu'} />
             </div>
 
+            {/* 🧍 Info Pemesan */}
             <div className="text-sm text-gray-800 space-y-1">
-              <p><span className="font-medium">Nama Pemesan:</span> {order.name}</p>
-              <p><span className="font-medium">Meja:</span> {order.table_number}</p>
-              {order.payment_method && (
-                <p><span className="font-medium">Metode Pembayaran:</span> {order.payment_method}</p>
-              )}
+              <p><span className="font-semibold">Nama Pemesan:</span> {order.name}</p>
+              <p><span className="font-semibold">Meja:</span> {order.table_number}</p>
+              <p><span className="font-semibold">Metode Pembayaran:</span> {order.payment_method}</p>
             </div>
 
+            {/* 🍽️ Detail Pesanan */}
             <div>
               <p className="font-semibold text-amber-900 mb-2">Rincian Pesanan:</p>
-              {order.order_items?.length > 0 ? (
-                <ul className="divide-y divide-gray-200 text-sm">
-                  {order.order_items.map((item, index) => (
-                    <li key={index} className="py-2 flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800">{item.menu?.name || 'Item tidak ditemukan'}</p>
-                        <p className="text-xs text-gray-500">
-                          {item.quantity} x Rp {item.price.toLocaleString('id-ID')}
-                        </p>
-                      </div>
-                      <p className="text-amber-800 font-semibold">
-                        Rp {(item.price * item.quantity).toLocaleString('id-ID')}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500 italic">Belum ada detail pesanan.</p>
-              )}
+              <ul className="divide-y divide-gray-200 text-sm">
+                {order.order_items?.map((item, i) => (
+                  <li key={i} className="py-2 flex justify-between items-start">
+                    <div>
+                      <p className="font-medium text-gray-800">{item.menu?.name}</p>
+                      <p className="text-xs text-gray-500">{item.quantity} x Rp {item.price.toLocaleString('id-ID')}</p>
+                    </div>
+                    <p className="text-amber-900 font-bold">
+                      Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <div className="text-right text-lg font-bold text-amber-900 border-t pt-4">
-              Total: Rp {order.total.toLocaleString('id-ID')}
+            {/* 💰 Total */}
+            <div className="text-right border-t pt-4">
+              <p className="text-lg font-bold text-amber-900">
+                Total: Rp {order.total.toLocaleString('id-ID')}
+              </p>
             </div>
-          </div>
-        )}
-
-        {!loading && notFound && (
-          <div className="text-center text-yellow-700 font-medium mt-6">
-            ⚠️ Tidak ada pesanan ditemukan.
           </div>
         )}
       </main>

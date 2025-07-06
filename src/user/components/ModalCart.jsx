@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const ModalCart = ({
   show,
@@ -7,16 +9,19 @@ const ModalCart = ({
   cart,
   onQuantityChange,
   onRemoveItem,
-  onResetCart,
-  onCheckout,
 }) => {
+  const navigate = useNavigate();
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+
+  const handleGoToCheckout = () => {
+    onClose(); // Tutup modal terlebih dahulu
+    navigate('/checkout', { state: { cart } }); // Pindah ke halaman checkout
+  };
 
   return (
     <AnimatePresence>
       {show && (
         <>
-          {/* Overlay hitam transparan */}
           <motion.div
             key="overlay"
             initial={{ opacity: 0 }}
@@ -27,7 +32,6 @@ const ModalCart = ({
             onClick={onClose}
           />
 
-          {/* Sidebar dari kiri */}
           <motion.div
             key="sidebar"
             initial={{ x: '-100%' }}
@@ -109,7 +113,7 @@ const ModalCart = ({
                 </div>
 
                 <button
-                  onClick={onCheckout}
+                  onClick={handleGoToCheckout}
                   className="w-full bg-amber-900 hover:bg-amber-800 text-white py-2 rounded-lg font-semibold transition"
                 >
                   Checkout
