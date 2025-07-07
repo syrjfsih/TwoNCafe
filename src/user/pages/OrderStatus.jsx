@@ -25,6 +25,20 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const getStatusMessage = (status) => {
+  const s = status?.toLowerCase();
+  if (s === 'diproses') return '✅ Pembayaran Berhasil! Pesananmu sedang kami proses, Mohon menunggu.';
+  if (s === 'selesai') return '🎉 Pesananmu telah selesai. Selamat menikmati!';
+  return '💸 Silakan bayar ke kasir agar pesananmu segera diproses.';
+};
+
+const getStatusImage = (status) => {
+  const s = status?.toLowerCase();
+  if (s === 'diproses') return '/foto-icon/happy.png';
+  if (s === 'selesai') return '/foto-icon/done.png';
+  return '/foto-icon/succes.png';
+};
+
 const OrderStatus = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -108,21 +122,22 @@ const OrderStatus = () => {
           </div>
         ) : (
           <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-amber-200 space-y-6">
-            {/* 🎉 Section Success */}
+            {/* 🎉 Section Status Dinamis */}
             <div className="text-center">
-              <img src="/foto-icon/succes.png" alt="Success" className="w-24 mx-auto mb-4" />
-              <h2 className="text-xl font-bold text-amber-900">Pesanan Berhasil!</h2>
+              <img
+                src={getStatusImage(order.status)}
+                alt="Status Ilustrasi"
+                className="w-24 mx-auto mb-4"
+              />
+              <h2 className="text-xl font-bold text-amber-900">Pesanan #{order.id.slice(0, 8)}</h2>
               <p className="text-sm text-gray-700 mt-1">
-                Silakan bayar ke kasir agar pesananmu segera diproses.
+                {getStatusMessage(order.status)}
               </p>
             </div>
 
             {/* 🧾 Ringkasan */}
             <div className="flex justify-between items-center border-b pb-2">
               <div>
-                <p className="text-base font-bold text-amber-900">
-                  Pesanan #{order.id.slice(0, 8)}
-                </p>
                 <p className="text-sm text-gray-600">
                   Dibuat: {new Date(order.created_at).toLocaleString('id-ID', {
                     day: 'numeric',
