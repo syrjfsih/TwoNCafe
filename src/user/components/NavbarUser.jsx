@@ -107,22 +107,26 @@ const UserNavbar = () => {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ duration: 0.3 }}
-              className="fixed inset-0 z-50 bg-amber-900 text-white flex flex-col items-center justify-center"
+              className="fixed inset-0 z-50 bg-amber-900 text-white flex items-center justify-center"
             >
               <motion.ul
-                className="space-y-8 text-2xl font-semibold text-center"
+                className="space-y-6 w-full max-w-sm px-6 text-lg font-medium text-center"
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
                 exit="exit"
               >
-                <motion.li variants={itemVariants}>
-                  <NavLink to="/" onClick={closeMenu} className="hover:text-amber-300 transition">
+                <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
+                  <NavLink
+                    to="/"
+                    onClick={closeMenu}
+                    className="block py-3 rounded-lg hover:bg-amber-800 transition"
+                  >
                     🏠 Beranda
                   </NavLink>
                 </motion.li>
 
-                <motion.li variants={itemVariants}>
+                <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
                     to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
                     onClick={(e) => {
@@ -133,13 +137,15 @@ const UserNavbar = () => {
                         closeMenu();
                       }
                     }}
-                    className={`hover:text-amber-300 transition ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`block py-3 rounded-lg transition ${
+                      nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
+                    }`}
                   >
                     📋 Menu
                   </NavLink>
                 </motion.li>
 
-                <motion.li variants={itemVariants}>
+                <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
                     to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
                     onClick={(e) => {
@@ -150,16 +156,18 @@ const UserNavbar = () => {
                         closeMenu();
                       }
                     }}
-                    className={`hover:text-amber-300 transition ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`block py-3 rounded-lg transition ${
+                      nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
+                    }`}
                   >
                     🧾 Pesananmu
                   </NavLink>
                 </motion.li>
 
-                <motion.li variants={itemVariants}>
+                <motion.li variants={itemVariants} whileTap={{ scale: 0.95 }}>
                   <button
                     onClick={closeMenu}
-                    className="mt-8 px-5 py-2 text-sm border border-white rounded-full hover:bg-white hover:text-amber-900 transition"
+                    className="mt-6 px-6 py-2 text-sm border border-white rounded-full hover:bg-white hover:text-amber-900 transition"
                   >
                     ✖️ Tutup Menu
                   </button>
