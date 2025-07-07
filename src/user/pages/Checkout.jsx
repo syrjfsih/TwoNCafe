@@ -1,4 +1,4 @@
-""// File: src/user/pages/Checkout.jsx
+// File: src/user/pages/Checkout.jsx
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FaMoneyBillWave, FaQrcode } from 'react-icons/fa';
@@ -14,7 +14,6 @@ const Checkout = () => {
   const [table, setTable] = useState('');
   const [type, setType] = useState('');
   const [method, setMethod] = useState('');
-  const [error, setError] = useState('');
   const [activeTables, setActiveTables] = useState([]);
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -51,12 +50,14 @@ const Checkout = () => {
   };
 
   const handleCheckout = async () => {
-    if (!name.trim() || !table || !type || !method) {
+    const finalTable = localStorage.getItem('nomorMeja'); // fix utama
+
+    if (!name.trim() || !finalTable || !type || !method) {
       toast.error('Lengkapi semua data terlebih dahulu.');
       return;
     }
 
-    const parsedTable = parseInt(table);
+    const parsedTable = parseInt(finalTable);
     if (!parsedTable || isNaN(parsedTable)) {
       toast.error('Nomor meja tidak valid.');
       return;
@@ -134,8 +135,7 @@ const Checkout = () => {
             return (
               <button
                 key={no}
-                onClick={() => setTable(no)}
-                disabled={isActive && !isCurrent}
+                disabled={!isCurrent}
                 className={`py-2 text-xs rounded font-semibold border transition duration-200
                   ${isCurrent ? 'bg-amber-800 text-white border-amber-800' : ''}
                   ${isActive && !isCurrent ? 'bg-amber-300 text-white border-amber-300 cursor-not-allowed' : ''}
@@ -158,8 +158,7 @@ const Checkout = () => {
             <img
               src="/foto-icon/take-away.png"
               alt="Take Away"
-              className={`w-8 h-8 mx-auto mb-1 transition ${type === 'takeaway' ? 'brightness-0 invert' : ''
-                }`}
+              className={`w-8 h-8 mx-auto mb-1 transition ${type === 'takeaway' ? 'brightness-0 invert' : ''}`}
             />
             Take Away
           </button>
@@ -171,8 +170,7 @@ const Checkout = () => {
             <img
               src="/foto-icon/dine-in.png"
               alt="Dine In"
-              className={`w-8 h-8 mx-auto mb-1 transition ${type === 'dinein' ? 'brightness-0 invert' : ''
-                }`}
+              className={`w-8 h-8 mx-auto mb-1 transition ${type === 'dinein' ? 'brightness-0 invert' : ''}`}
             />
             Dine In
           </button>
