@@ -1,29 +1,35 @@
-// File: src/admin/AdminApp.jsx
+// Import library routing dari React Router DOM
+import { Routes, Route } from 'react-router-dom';
 
-import { Routes, Route } from 'react-router-dom'; // Import komponen routing
-import AdminLogin from './pages/AdminLogin'; // Halaman login admin
-import Dashboard from './pages/Dashboard'; // Dashboard utama admin
-import ManageMenu from './pages/ManageMenu'; // Halaman CRUD menu
-import ManageOrders from './pages/ManageOrders'; // Halaman manajemen pesanan
-import Reports from './pages/Reports'; // Halaman laporan penjualan
+// Import halaman-halaman (page) admin
+import AdminLogin from './pages/AdminLogin';
+import Dashboard from './pages/Dashboard';
+import ManageMenu from './pages/ManageMenu';
+import ManageOrders from './pages/ManageOrders';
+import Reports from './pages/Reports';
 
-// Komponen AdminApp berfungsi sebagai router utama untuk semua halaman admin
+// Import komponen proteksi rute agar halaman admin hanya bisa diakses setelah login
+import AdminProtectedRoute from './components/AdminProtectedRoute';
+
 const AdminApp = () => (
   <Routes>
-    {/* Route untuk halaman login admin */}
+    {/* 🔐 Route untuk halaman login admin */}
     <Route path="/login" element={<AdminLogin />} />
 
-    {/* Route ke dashboard admin */}
-    <Route path="/dashboard" element={<Dashboard />} />
-
-    {/* Route untuk halaman kelola menu */}
-    <Route path="/menu" element={<ManageMenu />} />
-
-    {/* Route untuk halaman kelola pesanan */}
-    <Route path="/orders" element={<ManageOrders />} />
-
-    {/* Route untuk halaman laporan */}
-    <Route path="/reports" element={<Reports />} />
+    {/* 🔒 Semua halaman berikut akan diproteksi menggunakan AdminProtectedRoute */}
+    <Route element={<AdminProtectedRoute />}>
+      {/* 📊 Dashboard Admin: Menampilkan ringkasan statistik & grafik */}
+      <Route path="/dashboard" element={<Dashboard />} />
+      
+      {/* 📋 Kelola Menu: Admin dapat menambah, mengedit, dan menghapus menu */}
+      <Route path="/menu" element={<ManageMenu />} />
+      
+      {/* 🧾 Kelola Pesanan: Melihat, ubah status, atau hapus pesanan yang masuk */}
+      <Route path="/orders" element={<ManageOrders />} />
+      
+      {/* 📈 Laporan Penjualan: Melihat dan mengekspor laporan transaksi */}
+      <Route path="/reports" element={<Reports />} />
+    </Route>
   </Routes>
 );
 
