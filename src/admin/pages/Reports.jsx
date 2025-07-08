@@ -1,14 +1,17 @@
+// File: src/admin/pages/LaporanPenjualan.jsx
+
 import { useEffect, useState } from 'react';
 import Sidebar from '../components/Sidebar';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar,
-} from 'recharts';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx';
-import { supabase } from '../../services/supabase';
+} from 'recharts'; // Komponen chart dari library Recharts
+import jsPDF from 'jspdf'; // Untuk export PDF
+import html2canvas from 'html2canvas'; // Untuk capture elemen HTML ke image
+import * as XLSX from 'xlsx'; // Untuk export Excel
+import { supabase } from '../../services/supabase'; // Koneksi ke Supabase
 
 const LaporanPenjualan = () => {
+  // State untuk data pesanan
   const [orders, setOrders] = useState([]);
   const [dailyData, setDailyData] = useState([]);
   const [weeklyData, setWeeklyData] = useState([]);
@@ -16,6 +19,7 @@ const LaporanPenjualan = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Ambil data pesanan dari Supabase saat komponen dimuat
   useEffect(() => {
     const fetchOrders = async () => {
       const { data, error } = await supabase
@@ -42,15 +46,15 @@ const LaporanPenjualan = () => {
       }));
       setDailyData(harianArray);
 
-      // Data 7 hari terakhir
+      // Ambil 7 hari terakhir untuk data mingguan
       const minggu = harianArray.slice(-7);
       setWeeklyData(minggu);
 
-      // Data bulanan
+      // Proses data bulanan
       const bulananMap = {};
       data.forEach(order => {
         const bulan = order.created_at.slice(0, 7); // yyyy-mm
-        bulananMap[bulan] = (bulananMap[bulan] || 0) + order.total_harga;
+        bulananMap[bulan] = (bulananMap[bulan] || 0) + order.total;
       });
       const bulanArray = Object.entries(bulananMap).map(([bulan, total]) => ({
         bulan,
@@ -62,14 +66,16 @@ const LaporanPenjualan = () => {
     fetchOrders();
   }, []);
 
-  // Filter berdasarkan tanggal
+  // Filter data berdasarkan tanggal yang dipilih user
   const filtered = dailyData.filter((d) => {
     if (!startDate || !endDate) return true;
     return d.tanggal >= startDate && d.tanggal <= endDate;
   });
 
+  // Hitung total keuntungan dari data yang difilter
   const totalProfit = filtered.reduce((sum, d) => sum + d.total, 0);
 
+  // Export tampilan laporan menjadi file PDF
   const handleExportPDF = () => {
     const input = document.getElementById('laporan-area');
     html2canvas(input).then((canvas) => {
@@ -83,6 +89,7 @@ const LaporanPenjualan = () => {
     });
   };
 
+  // Export data laporan ke Excel
   const handleExportExcel = () => {
     const data = filtered.map((item) => ({
       Tanggal: item.tanggal,
@@ -96,11 +103,12 @@ const LaporanPenjualan = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar /> {/* Sidebar navigasi admin */}
+
       <main className="flex-1 p-6">
         <h1 className="text-2xl font-bold text-[#702F25] mb-6">Laporan Penjualan</h1>
 
-        {/* Filter + tombol export */}
+        {/* Form filter tanggal dan tombol export */}
         <div className="flex flex-wrap gap-4 items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <input
@@ -117,6 +125,7 @@ const LaporanPenjualan = () => {
               className="border px-3 py-1 rounded-md"
             />
           </div>
+
           <div className="flex gap-3">
             <button
               onClick={handleExportPDF}
@@ -133,9 +142,9 @@ const LaporanPenjualan = () => {
           </div>
         </div>
 
-        {/* Laporan Area */}
+        {/* Area laporan yang bisa diexport */}
         <div id="laporan-area" className="space-y-8">
-          {/* Total */}
+          {/* Total profit */}
           <div className="bg-white rounded-lg shadow p-4">
             <p className="text-sm text-gray-600">
               Total Profit:{' '}
@@ -145,7 +154,7 @@ const LaporanPenjualan = () => {
             </p>
           </div>
 
-          {/* Harian */}
+          {/* Grafik harian */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Keuntungan Harian</h2>
             <ResponsiveContainer width="100%" height={300}>
@@ -160,7 +169,7 @@ const LaporanPenjualan = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Mingguan */}
+          {/* Grafik mingguan */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Keuntungan Mingguan</h2>
             <ResponsiveContainer width="100%" height={300}>
@@ -175,7 +184,7 @@ const LaporanPenjualan = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Bulanan */}
+          {/* Grafik bulanan */}
           <div className="bg-white rounded-lg shadow p-4">
             <h2 className="text-lg font-semibold text-gray-800 mb-3">Keuntungan Bulanan</h2>
             <ResponsiveContainer width="100%" height={300}>

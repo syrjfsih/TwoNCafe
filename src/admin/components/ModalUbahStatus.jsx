@@ -1,11 +1,15 @@
+// File: src/admin/components/ModalUbahStatus.jsx
+
 import { useState } from 'react';
 import { supabase } from '../../services/supabase';
 import { FaPrint } from 'react-icons/fa';
 
 const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetchOrders }) => {
+  // State untuk menyimpan status pesanan yang dipilih
   const [status, setStatus] = useState(currentStatus);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Indikator loading saat simpan
 
+  // Fungsi untuk mencetak struk pesanan
   const handlePrint = async () => {
     const { data, error } = await supabase
       .from('orders')
@@ -16,10 +20,11 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
         )`
       )
       .eq('id', orderId)
-      .single();
+      .single(); // Ambil data pesanan berdasarkan ID
 
     if (error || !data) return;
 
+    // Membuka window baru untuk mencetak struk
     const win = window.open('', 'PRINT', 'height=650,width=800');
     win.document.write(`<html><head><title>Struk Pesanan</title></head><body>`);
     win.document.write(`<h2>TwoNCafe</h2>`);
@@ -27,6 +32,7 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
     win.document.write(`<p><strong>Meja:</strong> ${data.table_number}</p>`);
     win.document.write(`<p><strong>Status:</strong> ${data.status}</p>`);
     win.document.write(`<hr />`);
+    // Tampilkan setiap item yang dipesan
     data.order_items.forEach((item) => {
       win.document.write(
         `<p>${item.menu?.name || 'Menu'} x ${item.quantity} = Rp ${(
@@ -39,22 +45,25 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
     win.document.write(`</body></html>`);
     win.document.close();
     win.focus();
-    win.print();
-    win.close();
+    win.print(); // Cetak isi window
+    win.close(); // Tutup window setelah cetak
   };
 
+  // Fungsi untuk menyimpan perubahan status ke database
   const handleSubmit = async () => {
     setLoading(true);
 
-    // Tambahkan ended_at hanya jika status = selesai
+    // Payload yang akan diupdate
     const updatePayload = {
       status: status.toLowerCase()
     };
 
+    // Jika status diubah menjadi selesai, tambahkan ended_at
     if (status.toLowerCase() === 'selesai') {
       updatePayload.ended_at = new Date().toISOString();
     }
 
+    // Update data ke Supabase
     const { error } = await supabase
       .from('orders')
       .update(updatePayload)
@@ -68,11 +77,13 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
       return;
     }
 
+    // Jika ada fungsi callback, jalankan
     if (fetchOrders) fetchOrders();
     if (onSave) onSave(status);
-    onClose();
+    onClose(); // Tutup modal setelah simpan
   };
 
+  // Jika modal tidak aktif, return null
   if (!isOpen) return null;
 
   return (
@@ -80,6 +91,7 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
       <div className="bg-white p-6 rounded-xl w-full max-w-md">
         <h2 className="text-xl font-bold mb-4 text-[#702F25]">Ubah Status Pesanan</h2>
 
+        {/* Dropdown untuk memilih status pesanan */}
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
@@ -91,12 +103,15 @@ const ModalUbahStatus = ({ isOpen, onClose, onSave, currentStatus, orderId, fetc
         </select>
 
         <div className="flex justify-between mt-4">
+          {/* Tombol cetak struk */}
           <button
             onClick={handlePrint}
             className="flex items-center gap-2 text-sm text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg"
           >
             <FaPrint /> Cetak Struk
           </button>
+
+          {/* Tombol aksi bawah */}
           <div className="flex gap-3">
             <button
               onClick={onClose}

@@ -1,13 +1,31 @@
+// File: src/components/ModalCheckout.jsx
+
+// Import React dan hook bawaan
 import React, { useState, useEffect } from 'react';
+
+// Import animasi dari framer-motion
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Import notifikasi popup
 import { toast } from 'react-toastify';
+
+// Navigasi halaman
 import { useNavigate } from 'react-router-dom';
+
+// Import ikon
 import { FaMoneyBillWave, FaQrcode } from 'react-icons/fa';
+
+// Import koneksi supabase
 import { supabase } from '../../services/supabase';
 
+// Komponen modal checkout
 const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState('pilihan');
+
+  // State untuk mengatur tahapan step checkout
+  const [step, setStep] = useState('pilihan'); // pilihan → data → pembayaran → struk
+
+  // Data pemesan
   const [name, setName] = useState('');
   const [table, setTable] = useState('');
   const [type, setType] = useState('');
@@ -15,8 +33,10 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
   const [error, setError] = useState('');
   const [checkingTable, setCheckingTable] = useState(false);
 
+  // Hitung total harga dari isi keranjang
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  // Ambil nomor meja dari URL saat komponen pertama kali muncul
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mejaFromURL = params.get('meja');
@@ -29,14 +49,17 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     }
   }, []);
 
+  // Ambil meja yang terkunci dari localStorage
   const lockedTable = localStorage.getItem('nomorMeja');
   const isLocked = !!lockedTable;
 
+  // Pilih tipe pemesanan (dine in / takeaway)
   const handleSelectType = (selected) => {
     setType(selected);
     setStep('data');
   };
 
+  // Validasi input nama & meja serta cek apakah meja tersedia
   const handleInputSubmit = async () => {
     const currentTable = localStorage.getItem('nomorMeja');
     setTable(currentTable);
@@ -48,6 +71,8 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
 
     setError('');
     setCheckingTable(true);
+
+    // Cek apakah ada pesanan aktif di meja tsb
     const { data, error: fetchError } = await supabase
       .from('orders')
       .select('id')
@@ -67,14 +92,17 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       return;
     }
 
+    // Lanjut ke step pembayaran jika valid
     setStep('pembayaran');
   };
 
+  // Pilih metode pembayaran
   const handlePayment = (m) => {
     setMethod(m);
     setStep('struk');
   };
 
+  // Simpan semua data pesanan ke database Supabase
   const handleConfirm = async () => {
     const currentTable = localStorage.getItem('nomorMeja');
     const parsedTable = parseInt(currentTable);
@@ -84,7 +112,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       return;
     }
 
-    // 1. Simpan data order utama
+    // 1. Simpan order utama
     const { data: orderData, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -106,7 +134,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       return;
     }
 
-    // 2. Simpan detail pesanan
+    // 2. Simpan item-item pesanan
     const itemsToInsert = cart.map((item) => ({
       order_id: orderData.id,
       menu_id: item.id,
@@ -135,7 +163,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
       }
     }
 
-    // 4. Reset & navigasi
+    // 4. Reset data & arahkan user ke halaman status
     localStorage.removeItem('nomorMeja');
     onClose();
     onResetCart();
@@ -148,6 +176,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
     }, 300);
   };
 
+  // Tampilan UI sesuai step (pilihan → data → pembayaran → struk)
   return (
     <AnimatePresence>
       {show && (
@@ -171,9 +200,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               ✕
             </button>
 
-            {/* === STEP PILIHAN / DATA / PEMBAYARAN / STRUK === */}
-            {/* (kode step tetap sama seperti sebelumnya) */}
-
+            {/* === Step 1: Pilih Dine In atau Takeaway === */}
             {step === 'pilihan' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-6">Makan disini atau bawa pulang?</h2>
@@ -196,6 +223,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* === Step 2: Form Nama & Pilih Meja === */}
             {step === 'data' && (
               <>
                 <h2 className="text-xl font-bold mb-4 text-amber-900">Data Pemesan</h2>
@@ -237,6 +265,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* === Step 3: Pilih Metode Pembayaran === */}
             {step === 'pembayaran' && (
               <>
                 <h2 className="text-lg sm:text-xl font-bold text-amber-900 mb-4">Pilih Metode Pembayaran</h2>
@@ -262,6 +291,7 @@ const ModalCheckout = ({ show, onClose, cart = [], onResetCart = () => {} }) => 
               </>
             )}
 
+            {/* === Step 4: Ringkasan & Konfirmasi === */}
             {step === 'struk' && (
               <>
                 <h2 className="text-xl font-bold text-amber-900 mb-4">Ringkasan Pesanan</h2>

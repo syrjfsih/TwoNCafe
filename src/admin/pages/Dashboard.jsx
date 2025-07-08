@@ -9,6 +9,7 @@ import { supabase } from '../../services/supabase';
 import { toast } from 'react-toastify';
 
 const Dashboard = () => {
+  // State untuk menyimpan ringkasan data
   const [summary, setSummary] = useState({
     totalHariIni: 0,
     jumlahPesanan: 0,
@@ -16,20 +17,23 @@ const Dashboard = () => {
     trenHarian: [],
   });
 
-  const [pesananTerbaru, setPesananTerbaru] = useState([]);
-  const [tidakAdaPesanan, setTidakAdaPesanan] = useState(false);
-  const [mejaAktif, setMejaAktif] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const prevMejaAktifRef = useRef([]);
+  const [pesananTerbaru, setPesananTerbaru] = useState([]); // Menyimpan 5 pesanan terakhir
+  const [tidakAdaPesanan, setTidakAdaPesanan] = useState(false); // Notifikasi jika belum ada pesanan
+  const [mejaAktif, setMejaAktif] = useState([]); // Menyimpan meja yang sedang digunakan
+  const [loading, setLoading] = useState(true); // Loading indicator
+  const prevMejaAktifRef = useRef([]); // Untuk mendeteksi perubahan status meja aktif
 
+  // Jam buka dan tutup
   const [openingTime, setOpeningTime] = useState('08:00');
   const [closingTime, setClosingTime] = useState('22:00');
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split('T')[0]; // Format tanggal hari ini
 
+  // Fungsi untuk mengambil semua data yang diperlukan
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Ambil jam operasional
       const { data: settingsData, error: settingsErr } = await supabase
         .from('settings')
         .select('opening_time, closing_time')
@@ -37,12 +41,12 @@ const Dashboard = () => {
         .single();
 
       if (settingsErr) throw settingsErr;
-
       if (settingsData) {
         setOpeningTime(settingsData.opening_time);
         setClosingTime(settingsData.closing_time);
       }
 
+      // Ambil semua pesanan
       const { data: orders, error: orderErr } = await supabase
         .from('orders')
         .select('id, name, table_number, total, created_at, ended_at')
@@ -50,6 +54,7 @@ const Dashboard = () => {
 
       if (orderErr) throw orderErr;
 
+      // Ambil item pesanan untuk mendapatkan nama menu
       const { data: orderItems, error: itemErr } = await supabase
         .from('order_items')
         .select('order_id, menu_id, quantity, menu(name)')
@@ -57,6 +62,7 @@ const Dashboard = () => {
 
       if (itemErr) throw itemErr;
 
+      // Ambil data menu
       const { data: menus, error: menuErr } = await supabase
         .from('menu')
         .select('id, aktif');
@@ -71,6 +77,7 @@ const Dashboard = () => {
 
       setTidakAdaPesanan(jumlahPesanan === 0);
 
+      // Cek meja aktif (belum ada ended_at)
       const mejaSedangAktif = orders
         .filter((o) => o.ended_at === null)
         .map((o) => o.table_number);
@@ -84,6 +91,7 @@ const Dashboard = () => {
       prevMejaAktifRef.current = mejaUnik;
       setMejaAktif(mejaUnik);
 
+      // Hitung tren harian 7 hari terakhir
       const trenDummy = {};
       for (let i = 6; i >= 0; i--) {
         const d = new Date(Date.now() - i * 86400000);
@@ -103,6 +111,7 @@ const Dashboard = () => {
         total,
       }));
 
+      // Ambil 5 pesanan terbaru
       const terbaru = orders.slice(0, 5).map((order) => {
         const items = orderItems.filter((i) => i.order_id === order.id);
         const menuNames = items.map((m) => m.menu?.name).join(', ') || '—';
@@ -123,6 +132,7 @@ const Dashboard = () => {
     setLoading(false);
   };
 
+  // Simpan jam operasional ke tabel settings
   const simpanJamOperasional = async () => {
     const { error } = await supabase
       .from('settings')
@@ -139,6 +149,7 @@ const Dashboard = () => {
     }
   };
 
+  // Ambil data setiap 10 detik
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
@@ -149,6 +160,7 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
       <main className="flex-1 p-6">
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[#702F25]">Dashboard Admin</h1>
           <div className="flex items-center gap-2">
@@ -161,6 +173,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Jam Operasional */}
         <div className="bg-white rounded-lg shadow p-4 mb-8">
           <h2 className="text-lg font-semibold text-gray-800 mb-3">Jam Operasional</h2>
           <div className="grid grid-cols-2 gap-4 max-w-md mb-3">
@@ -191,6 +204,7 @@ const Dashboard = () => {
           </button>
         </div>
 
+        {/* Konten utama dashboard */}
         {loading ? (
           <p>Memuat data...</p>
         ) : (
@@ -201,6 +215,7 @@ const Dashboard = () => {
               </div>
             )}
 
+            {/* Statistik Ringkas */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
               <div className="bg-white shadow rounded-lg p-4">
                 <h3 className="text-gray-600 text-sm">Pendapatan Hari Ini</h3>
@@ -222,6 +237,7 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Grafik Penjualan */}
             <div className="bg-white rounded-lg shadow p-4 mb-8">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-lg font-semibold text-gray-800">
@@ -250,6 +266,7 @@ const Dashboard = () => {
               </ResponsiveContainer>
             </div>
 
+            {/* Status Meja */}
             <div className="bg-white rounded-lg shadow p-4 mb-8">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
                 Status Semua Meja (1–30)
@@ -273,6 +290,7 @@ const Dashboard = () => {
               </div>
             </div>
 
+            {/* Daftar Pesanan Terbaru */}
             <div className="bg-white rounded-lg shadow p-4">
               <h2 className="text-lg font-semibold text-gray-800 mb-3">
                 5 Pesanan Terakhir

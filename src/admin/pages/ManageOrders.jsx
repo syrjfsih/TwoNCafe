@@ -1,6 +1,8 @@
+// File: src/admin/pages/ManageOrders.jsx
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../services/supabase';
+import { supabase } from '../../services/supabase'; // Koneksi ke supabase
 import Sidebar from '../components/Sidebar';
 import ModalUbahStatus from '../components/ModalUbahStatus';
 import ModalHapusPesanan from '../components/ModalHapusPesanan';
@@ -9,20 +11,20 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const ManageOrders = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('Semua');
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [orders, setOrders] = useState([]); // Menyimpan daftar pesanan
+  const [filterStatus, setFilterStatus] = useState('Semua'); // Menyimpan filter status saat ini
+  const [showModal, setShowModal] = useState(false); // Toggle modal ubah status
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // Toggle modal konfirmasi hapus
+  const [selectedOrderId, setSelectedOrderId] = useState(null); // Menyimpan ID pesanan yang dipilih
 
-  // Cek login admin
+  // 🔐 Cek apakah admin sudah login
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate('/admin/login');
     });
   }, [navigate]);
 
-  // Ambil data pesanan
+  // 🔄 Ambil dan format data pesanan dari Supabase
   const fetchOrders = async () => {
     const { data, error } = await supabase
       .from('orders')
@@ -48,6 +50,7 @@ const ManageOrders = () => {
       return;
     }
 
+    // Format agar menu menjadi satu string deskriptif
     const formatted = data.map(order => ({
       id: order.id,
       nama: order.name,
@@ -62,7 +65,7 @@ const ManageOrders = () => {
     setOrders(formatted);
   };
 
-  // Realtime update
+  // 🔁 Aktifkan realtime listener Supabase untuk perubahan data pesanan
   useEffect(() => {
     fetchOrders();
 
@@ -74,7 +77,7 @@ const ManageOrders = () => {
         table: 'orders',
       }, (payload) => {
         console.log('📡 Realtime update:', payload);
-        fetchOrders();
+        fetchOrders(); // Refresh data
       })
       .subscribe((status) => {
         console.log('🟢 WebSocket status:', status);
@@ -85,13 +88,13 @@ const ManageOrders = () => {
     };
   }, []);
 
-  // Ubah status
+  // 🛠️ Buka modal ubah status
   const handleOpenModal = (id) => {
-    console.log('🔧 Buka modal untuk order ID:', id);
     setSelectedOrderId(id);
     setShowModal(true);
   };
 
+  // ✅ Simpan perubahan status ke database
   const handleStatusChange = async (newStatus) => {
     const { error } = await supabase
       .from('orders')
@@ -111,12 +114,13 @@ const ManageOrders = () => {
     fetchOrders();
   };
 
-  // Hapus pesanan
+  // 🗑️ Buka modal hapus pesanan
   const handleDeleteClick = (id) => {
     setSelectedOrderId(id);
     setShowDeleteModal(true);
   };
 
+  // ❌ Hapus data pesanan dan item terkait dari database
   const confirmDelete = async () => {
     const { error: itemsError } = await supabase
       .from('order_items')
@@ -141,17 +145,19 @@ const ManageOrders = () => {
     fetchOrders();
   };
 
+  // 🔍 Filter berdasarkan status
   const filteredOrders = orders.filter(order =>
     filterStatus === 'Semua' ? true : order.status === filterStatus
   );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar />
+      <Sidebar /> {/* Navigasi sidebar */}
 
       <main className="flex-1 p-6">
         <h1 className="text-2xl font-bold mb-6 text-[#702F25]">Pesanan Masuk</h1>
 
+        {/* Filter status */}
         <div className="mb-4 flex justify-between items-center">
           <div>
             <label className="text-sm font-medium text-gray-700 mr-2">Filter Status:</label>
@@ -168,6 +174,7 @@ const ManageOrders = () => {
           </div>
         </div>
 
+        {/* Tabel daftar pesanan */}
         <div className="overflow-x-auto bg-white rounded-xl shadow">
           <table className="w-full table-auto text-sm text-left text-gray-600">
             <thead className="bg-[#702F25] text-white">
@@ -230,6 +237,7 @@ const ManageOrders = () => {
         </div>
       </main>
 
+      {/* Modal untuk ubah status pesanan */}
       <ModalUbahStatus
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -238,13 +246,14 @@ const ManageOrders = () => {
         orderId={selectedOrderId}
       />
 
+      {/* Modal konfirmasi hapus */}
       <ModalHapusPesanan
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
       />
 
-      <ToastContainer />
+      <ToastContainer /> {/* Container notifikasi toast */}
     </div>
   );
 };

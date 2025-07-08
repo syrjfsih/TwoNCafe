@@ -1,39 +1,56 @@
 /* eslint-disable react-hooks/exhaustive-deps */
+
+// Import React dan hooks
 import React, { useEffect, useState } from 'react';
+
+// Import navigasi dan location untuk membaca query string
 import { useLocation, useNavigate } from 'react-router-dom';
+
+// Import framer-motion untuk animasi
 import { AnimatePresence, motion } from 'framer-motion';
+
+// Navbar khusus user
 import UserNavbar from '../components/NavbarUser';
+
+// Import koneksi supabase untuk ambil data
 import { supabase } from '../../services/supabase';
 
+// Custom hook untuk ambil query string dari URL
 const useQuery = () => new URLSearchParams(useLocation().search);
 
 const Home = () => {
-  const query = useQuery();
-  const navigate = useNavigate();
+  const query = useQuery(); // Ambil query dari URL (misalnya ?meja=5)
+  const navigate = useNavigate(); // Navigasi antar halaman
+
+  // State untuk menyimpan data dan status
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
   const [search, setSearch] = useState('');
   const [menuList, setMenuList] = useState([]);
   const [filteredMenu, setFilteredMenu] = useState([]);
   const [selectedMenu, setSelectedMenu] = useState(null);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(true); // Status buka tutup cafe
   const [jamOperasional, setJamOperasional] = useState('');
 
+  // Saat pertama kali load, cek apakah query ?meja= ada
   useEffect(() => {
     const meja = query.get('meja');
     if (meja) {
-      checkIfMejaAvailable(meja);
+      checkIfMejaAvailable(meja); // Validasi meja
     } else {
+      // Hapus data meja jika tidak ada query
       localStorage.removeItem('nomorMeja');
       setNomorMeja('');
     }
   }, []);
 
+  // Jika nomor meja tersedia dan cafe buka, ambil data menu
   useEffect(() => {
     if (nomorMeja && isOpen) {
       fetchMenu();
     }
   }, [nomorMeja, isOpen]);
 
+  // Cek apakah saat ini masih jam operasional
   useEffect(() => {
     const cekJamOperasional = async () => {
       try {
@@ -48,6 +65,7 @@ const Home = () => {
           return;
         }
 
+        // Ambil jam buka dan tutup dari database
         const opening = data.opening_time ?? '08:00';
         const closing = data.closing_time ?? '22:00';
 
@@ -56,21 +74,20 @@ const Home = () => {
           return;
         }
 
+        // Konversi ke menit
         const [openHour, openMin] = opening.split(':').map(Number);
         const [closeHour, closeMin] = closing.split(':').map(Number);
-
         const now = new Date();
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
         const openMinutes = openHour * 60 + openMin;
         const closeMinutes = closeHour * 60 + closeMin;
 
+        // Apakah saat ini masih dalam jam buka?
         const isOpen = nowMinutes >= openMinutes && nowMinutes < closeMinutes;
 
         if (!isOpen) {
-          // misalnya redirect ke halaman info tutup
-          navigate('/blocked');
+          navigate('/blocked'); // Jika di luar jam operasional, redirect ke halaman blokir
         }
-
       } catch (err) {
         console.error('🚨 Error saat cek jam operasional:', err);
       }
@@ -79,6 +96,7 @@ const Home = () => {
     cekJamOperasional();
   }, []);
 
+  // Validasi apakah meja tersedia (tidak sedang dipakai)
   const checkIfMejaAvailable = async (meja) => {
     const { data, error } = await supabase
       .from('orders')
@@ -103,6 +121,7 @@ const Home = () => {
     }
   };
 
+  // Ambil semua menu dari database
   const fetchMenu = async () => {
     const { data, error } = await supabase
       .from('menu')
@@ -118,6 +137,7 @@ const Home = () => {
     setFilteredMenu(data);
   };
 
+  // Saat user mengetik di pencarian
   const handleSearchChange = (e) => {
     const keyword = e.target.value;
     setSearch(keyword);
@@ -127,15 +147,18 @@ const Home = () => {
     setFilteredMenu(filtered);
   };
 
+  // Saat user klik menu dari hasil pencarian
   const handleSelectMenu = (menu) => {
     if (!isOpen) return;
     setSelectedMenu(menu);
   };
 
+  // Tutup modal pencarian
   const closeModal = () => {
     setSelectedMenu(null);
   };
 
+  // Navigasi ke halaman detail menu
   const goToDetail = (id) => {
     if (!isOpen) return;
     navigate(`/menu/${id}`);
@@ -143,13 +166,16 @@ const Home = () => {
 
   return (
     <>
+      {/* Navbar atas */}
       <UserNavbar />
 
+      {/* Hero Section */}
       <div className="w-full min-h-screen font-sans bg-white">
         <div
           className="w-full h-[500px] bg-cover bg-[position:top_10%_center] relative"
           style={{ backgroundImage: "url('/foto menu/background.jpg')" }}
         >
+          {/* Overlay dan konten selamat datang */}
           <div className="bg-black bg-opacity-30 w-full h-full py-20 px-5 sm:px-8 md:px-16 lg:px-32 text-white text-center">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 leading-tight drop-shadow-md">
               Selamat Datang di <span className="text-white">TwoNCafe!</span>
@@ -161,12 +187,14 @@ const Home = () => {
               }
             </p>
 
+            {/* Info tutup operasional */}
             {!isOpen && (
               <p className="mt-4 text-sm sm:text-base text-red-400 font-medium">
                 Saat ini di luar jam operasional ({jamOperasional}). Pemesanan dinonaktifkan.
               </p>
             )}
 
+            {/* Pencarian */}
             <div className="mt-10 flex justify-center">
               <div className="bg-white rounded-full shadow-lg flex items-center px-3 py-1 w-full max-w-2xl">
                 <input
@@ -186,6 +214,7 @@ const Home = () => {
               </div>
             </div>
 
+            {/* Hasil pencarian */}
             <AnimatePresence>
               {isOpen && search && filteredMenu.length > 0 && (
                 <motion.div
@@ -215,6 +244,7 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Modal detail menu (klik dari hasil pencarian) */}
         <AnimatePresence>
           {isOpen && selectedMenu && (
             <motion.div
@@ -259,7 +289,7 @@ const Home = () => {
           )}
         </AnimatePresence>
 
-        {/* Grid Meja dan Kategori */}
+        {/* Daftar meja (nonaktif), hanya indikator visual */}
         <div className="py-8 px-4 sm:px-8 md:px-16 lg:px-32">
           <h2 className="text-xl font-bold mb-4 text-gray-700">Meja Tersedia</h2>
           <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-4">
@@ -282,6 +312,7 @@ const Home = () => {
           </div>
         </div>
 
+        {/* Kategori makanan */}
         <div className="py-12 px-4 sm:px-8 md:px-16 lg:px-32 bg-gray-50">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-8 justify-items-center">
             {[

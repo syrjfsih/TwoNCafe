@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase';
 
+// Komponen untuk menampilkan dan mengedit data menu
 const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
+  // State untuk menyimpan form menu yang sedang diedit
   const [form, setForm] = useState({
     nama: '',
     harga: '',
@@ -9,9 +11,10 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
     gambar: null,
     kategori: '',
     stok: '',
-    previewUrl: ''
+    previewUrl: '' // preview gambar
   });
 
+  // Saat modal dibuka dan ada data awal, isi form dengan data tersebut
   useEffect(() => {
     if (isOpen && initialData) {
       setForm({
@@ -26,8 +29,10 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
     }
   }, [isOpen, initialData]);
 
+  // Fungsi untuk menangani input form
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+    // Jika input gambar, simpan file dan preview
     if (name === 'gambar' && files.length > 0) {
       const file = files[0];
       setForm((prev) => ({
@@ -40,7 +45,9 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
     }
   };
 
+  // Fungsi untuk menyimpan perubahan ke database
   const handleSubmit = async () => {
+    // Validasi input wajib
     if (!form.nama || !form.harga || !form.kategori || !initialData?.id) {
       alert('⚠️ Nama, Harga, Kategori dan ID menu wajib diisi!');
       return;
@@ -48,9 +55,11 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
 
     let finalImageUrl = form.previewUrl;
 
+    // Jika user memilih gambar baru, upload ke Supabase Storage
     if (form.gambar) {
       const fileName = `${Date.now()}-${form.gambar.name}`;
       const filePath = `menu/${fileName}`;
+
       const { error: uploadError } = await supabase.storage
         .from('menu-images')
         .upload(filePath, form.gambar, { upsert: true });
@@ -61,6 +70,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
         return;
       }
 
+      // Ambil URL gambar yang bisa diakses publik
       const { data: publicUrl } = supabase.storage
         .from('menu-images')
         .getPublicUrl(filePath);
@@ -73,6 +83,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
       finalImageUrl = publicUrl.publicUrl;
     }
 
+    // Simpan data update ke Supabase
     const { error } = await supabase
       .from('menu')
       .update({
@@ -90,10 +101,12 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
       return;
     }
 
+    // Jika ada callback sukses, panggil
     onUpdated?.();
-    onClose();
+    onClose(); // Tutup modal
   };
 
+  // Jika modal tidak dibuka, kembalikan null (tidak render apa-apa)
   if (!isOpen) return null;
 
   return (
@@ -101,6 +114,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold text-amber-900 mb-4">Edit Menu</h2>
 
+        {/* Input nama menu */}
         <label className="block text-sm mb-1">Nama Menu</label>
         <input
           name="nama"
@@ -109,6 +123,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input harga */}
         <label className="block text-sm mb-1">Harga</label>
         <input
           name="harga"
@@ -118,6 +133,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input stok */}
         <label className="block text-sm mb-1">Stok</label>
         <input
           name="stok"
@@ -127,6 +143,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input deskripsi */}
         <label className="block text-sm mb-1">Deskripsi</label>
         <textarea
           name="deskripsi"
@@ -135,6 +152,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input kategori */}
         <label className="block text-sm mb-1">Kategori</label>
         <select
           name="kategori"
@@ -147,6 +165,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           <option value="minuman">Minuman</option>
         </select>
 
+        {/* Upload gambar baru */}
         <label className="block text-sm mb-1">Gambar Baru (opsional)</label>
         <input
           name="gambar"
@@ -156,6 +175,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           className="w-full text-sm mb-2"
         />
 
+        {/* Preview gambar */}
         {form.previewUrl && (
           <img
             src={form.previewUrl}
@@ -164,6 +184,7 @@ const ModalEditMenu = ({ isOpen, onClose, initialData, onUpdated }) => {
           />
         )}
 
+        {/* Tombol aksi */}
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}

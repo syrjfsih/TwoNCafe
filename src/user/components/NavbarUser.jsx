@@ -1,18 +1,25 @@
 // File: src/components/UserNavbar.jsx
+
+// Import hooks dan dependencies
 import { useState, useEffect } from 'react';
-import { FaBars, FaTimes } from 'react-icons/fa';
-import { NavLink, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { FaBars, FaTimes } from 'react-icons/fa'; // Icon hamburger dan close
+import { NavLink, Link } from 'react-router-dom'; // Routing
+import { motion, AnimatePresence } from 'framer-motion'; // Untuk animasi
+import { toast } from 'react-toastify'; // Notifikasi
+import 'react-toastify/dist/ReactToastify.css'; // Styling notifikasi
 
 const UserNavbar = () => {
+  // State untuk menampilkan menu versi mobile
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Ambil nomor meja dari localStorage, kalau ada
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
 
+  // Fungsi toggle untuk buka/tutup menu mobile
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
   const closeMenu = () => setShowMobileMenu(false);
 
+  // Sync nomorMeja setiap kali localStorage berubah (misalnya dari tab lain)
   useEffect(() => {
     const updateNomorMeja = () => {
       const meja = localStorage.getItem('nomorMeja');
@@ -24,6 +31,7 @@ const UserNavbar = () => {
     return () => window.removeEventListener('storage', updateNomorMeja);
   }, []);
 
+  // Variasi animasi container dan item menu mobile
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -41,11 +49,13 @@ const UserNavbar = () => {
   return (
     <header className="bg-amber-900 shadow-md sticky top-0 z-50">
       <div className="max-w-8xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Logo dan brand */}
         <Link to="/" className="flex items-center gap-2">
           <img src="/foto menu/logo.png" alt="TwoNCafe Logo" className="h-9 w-9" />
           <span className="text-2xl font-bold text-white">TwoNCafe</span>
         </Link>
 
+        {/* Menu desktop (tampilan besar) */}
         <nav className="hidden md:flex gap-10 ml-auto">
           <NavLink to="/" className="text-lg font-medium hover:text-amber-200 text-white">
             Beranda
@@ -78,6 +88,7 @@ const UserNavbar = () => {
           </NavLink>
         </nav>
 
+        {/* Tombol toggle menu versi mobile */}
         <div className="md:hidden">
           <button
             onClick={toggleMobileMenu}
@@ -89,9 +100,11 @@ const UserNavbar = () => {
         </div>
       </div>
 
+      {/* Menu versi mobile */}
       <AnimatePresence>
         {showMobileMenu && (
           <>
+            {/* Latar belakang hitam semi transparan */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -101,6 +114,7 @@ const UserNavbar = () => {
               onClick={closeMenu}
             />
 
+            {/* Navigasi menu */}
             <motion.nav
               key="mobilemenu"
               initial={{ x: '100%' }}
@@ -116,6 +130,7 @@ const UserNavbar = () => {
                 animate="visible"
                 exit="exit"
               >
+                {/* Link ke beranda */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
                     to="/"
@@ -126,6 +141,7 @@ const UserNavbar = () => {
                   </NavLink>
                 </motion.li>
 
+                {/* Link ke menu */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
                     to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
@@ -145,6 +161,7 @@ const UserNavbar = () => {
                   </NavLink>
                 </motion.li>
 
+                {/* Link ke status pesanan */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
                     to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
@@ -164,6 +181,7 @@ const UserNavbar = () => {
                   </NavLink>
                 </motion.li>
 
+                {/* Tombol tutup menu */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.95 }}>
                   <button
                     onClick={closeMenu}

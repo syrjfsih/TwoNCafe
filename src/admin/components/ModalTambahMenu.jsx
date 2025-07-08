@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { supabase } from '../../services/supabase';
-import { toast } from 'react-toastify';
-import { Slide } from 'react-toastify';
+import { supabase } from '../../services/supabase'; // Supabase client untuk akses DB & storage
+import { toast } from 'react-toastify'; // Untuk notifikasi user
+import { Slide } from 'react-toastify'; // Transisi slide pada toast
 
 const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
+  // State untuk menampung nilai input form menu
   const [form, setForm] = useState({
     nama: '',
     harga: '',
@@ -12,18 +13,23 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
     kategori: '',
     stok: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
 
+  const [isLoading, setIsLoading] = useState(false); // Menandakan proses loading saat submit
+
+  // Handle perubahan input form
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (name === 'gambar') {
+      // Jika input gambar, simpan file-nya langsung
       setForm((prev) => ({ ...prev, gambar: files[0] }));
     } else {
       setForm((prev) => ({ ...prev, [name]: value }));
     }
   };
 
+  // Fungsi untuk menyimpan data menu ke Supabase
   const handleSubmit = async () => {
+    // Validasi input wajib
     if (!form.nama || !form.harga || !form.gambar || !form.kategori || !form.stok) {
       toast.error('⚠️ Semua field wajib diisi, termasuk stok!', { transition: Slide });
       return;
@@ -34,21 +40,24 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(true); // Aktifkan indikator loading
 
     try {
-      const fileName = `${Date.now()}-${form.gambar.name}`;
-      const filePath = `menu/${fileName}`;
+      // Upload gambar ke Supabase Storage
+      const fileName = `${Date.now()}-${form.gambar.name}`; // Nama file unik berdasarkan waktu
+      const filePath = `menu/${fileName}`; // Path penyimpanan
       const { error: uploadError } = await supabase.storage
         .from('menu-images')
         .upload(filePath, form.gambar);
 
       if (uploadError) throw new Error('Gagal upload gambar');
 
+      // Ambil URL gambar publik
       const { data: urlData } = supabase.storage
         .from('menu-images')
         .getPublicUrl(filePath);
 
+      // Siapkan data untuk insert ke database
       const insertData = {
         name: form.nama,
         price: parseInt(form.harga),
@@ -58,21 +67,24 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
         stock: parseInt(form.stok),
       };
 
+      // Insert ke tabel menu
       const { error: insertError } = await supabase.from('menu').insert([insertData]);
-
       if (insertError) throw new Error('Gagal menambahkan menu');
 
+      // Tampilkan notifikasi berhasil
       toast.success('✅ Menu berhasil ditambahkan!', { icon: '🧾', transition: Slide });
-      onSave(insertData);
-      setForm({ nama: '', harga: '', deskripsi: '', gambar: null, kategori: '', stok: '' });
-      onClose();
+      onSave(insertData); // Panggil callback untuk update list
+      setForm({ nama: '', harga: '', deskripsi: '', gambar: null, kategori: '', stok: '' }); // Reset form
+      onClose(); // Tutup modal
     } catch (err) {
+      // Jika error, tampilkan toast
       toast.error(`❌ ${err.message}`, { transition: Slide });
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Matikan loading apapun hasilnya
     }
   };
 
+  // Jika modal tidak ditampilkan, jangan render apapun
   if (!isOpen) return null;
 
   return (
@@ -80,6 +92,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
       <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
         <h2 className="text-xl font-bold text-amber-900 mb-4">Tambah Menu</h2>
 
+        {/* Input Nama Menu */}
         <label className="block text-sm mb-1">Nama Menu</label>
         <input
           name="nama"
@@ -88,6 +101,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input Harga */}
         <label className="block text-sm mb-1">Harga</label>
         <input
           name="harga"
@@ -97,6 +111,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input Stok */}
         <label className="block text-sm mb-1">Stok</label>
         <input
           name="stok"
@@ -106,6 +121,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input Deskripsi */}
         <label className="block text-sm mb-1">Deskripsi</label>
         <textarea
           name="deskripsi"
@@ -114,6 +130,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-3 border px-3 py-2 rounded text-sm"
         />
 
+        {/* Input Kategori */}
         <label className="block text-sm mb-1">Kategori</label>
         <select
           name="kategori"
@@ -126,6 +143,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           <option value="minuman">🥤 Minuman</option>
         </select>
 
+        {/* Input Gambar */}
         <label className="block text-sm mb-1">Upload Gambar</label>
         <input
           name="gambar"
@@ -135,6 +153,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
           className="w-full mb-4 text-sm"
         />
 
+        {/* Tombol Aksi */}
         <div className="flex justify-end gap-3">
           <button
             onClick={onClose}
@@ -150,6 +169,7 @@ const ModalTambahMenu = ({ isOpen, onClose, onSave }) => {
               isLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-amber-800'
             }`}
           >
+            {/* Spinner loading */}
             {isLoading && (
               <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

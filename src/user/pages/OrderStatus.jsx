@@ -1,10 +1,21 @@
 // File: src/user/pages/OrderStatus.jsx
+
+// Import React dan hook state/effect
 import React, { useState, useEffect } from 'react';
+
+// Import untuk mengambil query string dari URL
 import { useLocation } from 'react-router-dom';
+
+// Import koneksi ke Supabase
 import { supabase } from '../../services/supabase';
+
+// Navbar khusus user
 import UserNavbar from '../components/NavbarUser';
+
+// Icon status
 import { FaClock, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 
+// Komponen badge status (menunggu, diproses, selesai)
 const StatusBadge = ({ status }) => {
   let color = 'text-yellow-400';
   let icon = <FaClock />;
@@ -25,6 +36,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Fungsi untuk menampilkan pesan berdasarkan status pesanan
 const getStatusMessage = (status) => {
   const s = status?.toLowerCase();
   if (s === 'diproses') return '✅ Pembayaran Berhasil! Pesananmu sedang kami proses, Mohon menunggu.';
@@ -32,6 +44,7 @@ const getStatusMessage = (status) => {
   return '💸 Silakan bayar ke kasir agar pesananmu segera diproses.';
 };
 
+// Fungsi untuk menentukan gambar berdasarkan status
 const getStatusImage = (status) => {
   const s = status?.toLowerCase();
   if (s === 'diproses') return '/foto-icon/happy.png';
@@ -39,30 +52,35 @@ const getStatusImage = (status) => {
   return '/foto-icon/succes.png';
 };
 
+// Komponen utama OrderStatus
 const OrderStatus = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const namaQuery = params.get('nama') || '';
   const mejaQuery = params.get('meja') || '';
 
+  // State input nama dan meja
   const [name, setName] = useState(namaQuery);
   const [table, setTable] = useState(mejaQuery);
+
+  // State untuk menyimpan pesanan dari Supabase
   const [order, setOrder] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Fungsi mengambil data pesanan berdasarkan nama dan nomor meja
   const fetchOrder = async () => {
     if (!name.trim() || !table.trim()) return;
 
     setLoading(true);
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*, menu:menu_id(name))')
+      .select('*, order_items(*, menu:menu_id(name))') // Ambil order_items dan nama menu
       .ilike('name', name.trim())
       .eq('table_number', parseInt(table))
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }) // Urutkan dari terbaru
       .limit(1)
-      .single();
+      .single(); // Ambil satu data saja (terbaru)
 
     if (error || !data) {
       setOrder(null);
@@ -75,6 +93,7 @@ const OrderStatus = () => {
     setLoading(false);
   };
 
+  // Fetch data saat nama & meja valid, dan refresh otomatis tiap 10 detik
   useEffect(() => {
     if (name && table) fetchOrder();
     const interval = setInterval(fetchOrder, 10000);
@@ -84,11 +103,14 @@ const OrderStatus = () => {
   return (
     <>
       <UserNavbar />
+
+      {/* Container utama */}
       <main className="min-h-screen bg-amber-50 py-12 px-4 sm:px-8 md:px-20 lg:px-40">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-amber-900 mb-8">
           Status Pesananmu
         </h1>
 
+        {/* Form input manual jika tidak ada query di URL */}
         {!namaQuery || !mejaQuery ? (
           <div className="max-w-md mx-auto space-y-4 mb-6">
             <input
@@ -112,16 +134,23 @@ const OrderStatus = () => {
               Cek Status
             </button>
           </div>
+
+        // Tampilkan loading saat mengambil data
         ) : loading ? (
           <div className="text-center text-gray-500 font-medium mt-6">
             ⏳ Memuat pesanan...
           </div>
+
+        // Jika tidak ditemukan
         ) : notFound ? (
           <div className="text-center text-yellow-700 font-medium mt-6">
             ⚠️ Tidak ada pesanan ditemukan.
           </div>
+
+        // Jika data ditemukan
         ) : (
           <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-amber-200 space-y-6">
+
             {/* 🎉 Section Status Dinamis */}
             <div className="text-center">
               <img
@@ -135,7 +164,7 @@ const OrderStatus = () => {
               </p>
             </div>
 
-            {/* 🧾 Ringkasan */}
+            {/* 🧾 Ringkasan waktu & badge status */}
             <div className="flex justify-between items-center border-b pb-2">
               <div>
                 <p className="text-sm text-gray-600">
