@@ -1,25 +1,15 @@
 // File: src/user/pages/OrderStatus.jsx
 
-// Import React dan hook state/effect
 import React, { useState, useEffect } from 'react';
-
-// Import untuk mengambil query string dari URL
 import { useLocation } from 'react-router-dom';
-
-// Import koneksi ke Supabase
 import { supabase } from '../../services/supabase';
-
-// Navbar khusus user
 import UserNavbar from '../components/NavbarUser';
-
-// Icon status
+import { setStatusPesanan, clearPesananSession } from "../../utils/sessionHelper";
 import { FaClock, FaCheckCircle, FaSpinner } from 'react-icons/fa';
 
-// Komponen badge status (menunggu, diproses, selesai)
 const StatusBadge = ({ status }) => {
   let color = 'text-yellow-400';
   let icon = <FaClock />;
-
   if (status?.toLowerCase() === 'diproses') {
     color = 'text-blue-400';
     icon = <FaSpinner className="animate-spin" />;
@@ -36,7 +26,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// Fungsi untuk menampilkan pesan berdasarkan status pesanan
 const getStatusMessage = (status) => {
   const s = status?.toLowerCase();
   if (s === 'diproses') return '✅ Pembayaran Berhasil! Pesananmu sedang kami proses, Mohon menunggu.';
@@ -44,7 +33,6 @@ const getStatusMessage = (status) => {
   return '💸 Silakan bayar ke kasir agar pesananmu segera diproses.';
 };
 
-// Fungsi untuk menentukan gambar berdasarkan status
 const getStatusImage = (status) => {
   const s = status?.toLowerCase();
   if (s === 'diproses') return '/foto-icon/happy.png';
@@ -52,35 +40,30 @@ const getStatusImage = (status) => {
   return '/foto-icon/succes.png';
 };
 
-// Komponen utama OrderStatus
 const OrderStatus = () => {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const namaQuery = params.get('nama') || '';
   const mejaQuery = params.get('meja') || '';
 
-  // State input nama dan meja
   const [name, setName] = useState(namaQuery);
   const [table, setTable] = useState(mejaQuery);
-
-  // State untuk menyimpan pesanan dari Supabase
   const [order, setOrder] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fungsi mengambil data pesanan berdasarkan nama dan nomor meja
   const fetchOrder = async () => {
     if (!name.trim() || !table.trim()) return;
 
     setLoading(true);
     const { data, error } = await supabase
       .from('orders')
-      .select('*, order_items(*, menu:menu_id(name))') // Ambil order_items dan nama menu
+      .select('*, order_items(*, menu:menu_id(name))')
       .ilike('name', name.trim())
       .eq('table_number', parseInt(table))
-      .order('created_at', { ascending: false }) // Urutkan dari terbaru
+      .order('created_at', { ascending: false })
       .limit(1)
-      .single(); // Ambil satu data saja (terbaru)
+      .single();
 
     if (error || !data) {
       setOrder(null);
@@ -93,24 +76,83 @@ const OrderStatus = () => {
     setLoading(false);
   };
 
-  // Fetch data saat nama & meja valid, dan refresh otomatis tiap 10 detik
   useEffect(() => {
     if (name && table) fetchOrder();
     const interval = setInterval(fetchOrder, 10000);
     return () => clearInterval(interval);
   }, [name, table]);
 
+  // ⏳ Simpan & hapus localStorage berdasarkan status pesanan
+  useEffect(() => {
+    if (!order) return;
+
+    localStorage.setItem('statusPesanan', order.status?.toLowerCase());
+    localStorage.setItem('nomorMeja', order.table_number);
+    localStorage.setItem('namaPemesan', order.name);
+
+    if (order.status?.toLowerCase() === 'selesai') {
+      localStorage.removeItem('statusPesanan');
+      localStorage.removeItem('nomorMeja');
+      localStorage.removeItem('namaPemesan');
+      localStorage.removeItem(`userCart_meja_${order.table_number}`);
+    }
+  }, [order]);
+
+  // 🔄 Auto-reset halaman jika user tidak aktif 2 menit & pesanan selesai
+  useEffect(() => {
+    let timeoutId;
+    const meja = localStorage.getItem('nomorMeja');
+    const nama = localStorage.getItem('namaPemesan');
+
+    const resetIfIdle = async () => {
+      if (!meja || !nama) return;
+
+      const { data } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('table_number', parseInt(meja))
+        .ilike('name', nama)
+        .is('ended_at', null)
+        .neq('status', 'selesai');
+
+      const hasActiveOrder = data && data.length > 0;
+
+      if (!hasActiveOrder) {
+        localStorage.removeItem('nomorMeja');
+        localStorage.removeItem('namaPemesan');
+        localStorage.removeItem(`userCart_meja_${meja}`);
+        localStorage.removeItem('statusPesanan');
+        window.location.href = '/';
+      }
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(resetIfIdle, 2 * 60 * 1000); // 2 menit
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+    };
+  }, []);
+
   return (
     <>
       <UserNavbar />
 
-      {/* Container utama */}
       <main className="min-h-screen bg-amber-50 py-12 px-4 sm:px-8 md:px-20 lg:px-40">
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-amber-900 mb-8">
           Status Pesananmu
         </h1>
 
-        {/* Form input manual jika tidak ada query di URL */}
         {!namaQuery || !mejaQuery ? (
           <div className="max-w-md mx-auto space-y-4 mb-6">
             <input
@@ -134,24 +176,16 @@ const OrderStatus = () => {
               Cek Status
             </button>
           </div>
-
-        // Tampilkan loading saat mengambil data
         ) : loading ? (
           <div className="text-center text-gray-500 font-medium mt-6">
             ⏳ Memuat pesanan...
           </div>
-
-        // Jika tidak ditemukan
         ) : notFound ? (
           <div className="text-center text-yellow-700 font-medium mt-6">
             ⚠️ Tidak ada pesanan ditemukan.
           </div>
-
-        // Jika data ditemukan
         ) : (
           <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-amber-200 space-y-6">
-
-            {/* 🎉 Section Status Dinamis */}
             <div className="text-center">
               <img
                 src={getStatusImage(order.status)}
@@ -164,7 +198,6 @@ const OrderStatus = () => {
               </p>
             </div>
 
-            {/* 🧾 Ringkasan waktu & badge status */}
             <div className="flex justify-between items-center border-b pb-2">
               <div>
                 <p className="text-sm text-gray-600">
@@ -180,14 +213,12 @@ const OrderStatus = () => {
               <StatusBadge status={order.status || 'menunggu'} />
             </div>
 
-            {/* 🧍 Info Pemesan */}
             <div className="text-sm text-gray-800 space-y-1">
               <p><span className="font-semibold">Nama Pemesan:</span> {order.name}</p>
               <p><span className="font-semibold">Meja:</span> {order.table_number}</p>
               <p><span className="font-semibold">Metode Pembayaran:</span> {order.payment_method}</p>
             </div>
 
-            {/* 🍽️ Detail Pesanan */}
             <div>
               <p className="font-semibold text-amber-900 mb-2">Rincian Pesanan:</p>
               <ul className="divide-y divide-gray-200 text-sm">
@@ -205,7 +236,6 @@ const OrderStatus = () => {
               </ul>
             </div>
 
-            {/* 💰 Total */}
             <div className="text-right border-t pt-4">
               <p className="text-lg font-bold text-amber-900">
                 Total: Rp {order.total.toLocaleString('id-ID')}

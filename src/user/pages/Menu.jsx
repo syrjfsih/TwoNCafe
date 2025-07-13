@@ -1,53 +1,89 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-
-// Import React dan hooks yang dibutuhkan
 import React, { useEffect, useState } from 'react';
-
-// Komponen-komponen custom
-import MenuCard from '../components/MenuCard'; // Komponen untuk menampilkan satu item menu
-import NavbarUser from '../components/NavbarUser'; // Navbar di bagian atas
-import ModalCart from '../components/ModalCart'; // Modal keranjang belanja
-import ModalCheckout from '../components/ModalCheckout'; // Modal untuk checkout
-
-// Supabase untuk komunikasi dengan database
-import { supabase } from '../../services/supabase';
-
-// Untuk notifikasi (toast)
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-
-// Icon keranjang dari react-icons
 import { FaShoppingCart } from 'react-icons/fa';
-
-// Framer motion untuk animasi
 import { motion } from 'framer-motion';
+import { isPesananAktif, getNomorMeja, getNamaPemesan } from "../../utils/sessionHelper";
+import MenuCard from '../components/MenuCard';
+import NavbarUser from '../components/NavbarUser';
+import ModalCart from '../components/ModalCart';
+import ModalCheckout from '../components/ModalCheckout';
 
-// Import file CSS untuk toast
+import { supabase } from '../../services/supabase';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Navigasi antar halaman
-import { useLocation, useNavigate } from 'react-router-dom';
+// ======== CACHE UTILS ========
 
-// Komponen utama halaman Menu
+const MENU_CACHE_KEY = 'cachedMenu';
+const MENU_CACHE_EXPIRED_KEY = 'cachedMenuExpiredAt';
+const MENU_TTL_MIN = 15;
+
+const getCachedMenu = () => {
+  const data = localStorage.getItem(MENU_CACHE_KEY);
+  try {
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedMenu = (data) => {
+  localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(data));
+  localStorage.setItem(MENU_CACHE_EXPIRED_KEY, Date.now() + MENU_TTL_MIN * 60 * 1000);
+};
+
+const isMenuCacheValid = () => {
+  const expiredAt = localStorage.getItem(MENU_CACHE_EXPIRED_KEY);
+  return expiredAt && parseInt(expiredAt) > Date.now();
+};
+
 const Menu = () => {
-  // State untuk menyimpan data menu dari database
-  const [menuList, setMenuList] = useState([]);
-
-  // State keranjang belanja
-  const [cart, setCart] = useState([]);
-
-  // State untuk menampilkan atau menyembunyikan modal
-  const [showCart, setShowCart] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  // Lokasi dan navigasi dari react-router
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Saat halaman dimuat, ambil parameter meja dari URL dan cek validitas
+  const [menuList, setMenuList] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [nomorMeja, setNomorMeja] = useState(null);
+  const [namaPemesan, setNamaPemesan] = useState(null);
+
+  const getCartKey = (meja) => `userCart_meja_${meja}`;
+  const getCartFromStorage = (meja) => {
+    try {
+      const data = localStorage.getItem(getCartKey(meja));
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  };
+  const setCartToStorage = (meja, data) => {
+    localStorage.setItem(getCartKey(meja), JSON.stringify(data));
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const meja = params.get('meja');
+    let meja = params.get('meja');
+    let nama = params.get('nama');
+
+    if (!meja && isPesananAktif()) {
+      meja = getNomorMeja();
+      nama = getNamaPemesan();
+      if (meja && nama) {
+        navigate(`/menu?meja=${meja}&nama=${encodeURIComponent(nama)}`, { replace: true });
+        return;
+      }
+    }
+
+    const sudahRefresh = sessionStorage.getItem('refreshMenuOnce');
+
+    if (meja && !sudahRefresh) {
+      sessionStorage.setItem('refreshMenuOnce', 'true');
+      window.location.href = `/menu?meja=${meja}&nama=${nama || ''}`;
+      return;
+    }
 
     if (!meja) {
       toast.error("🚫 Akses menu hanya lewat QR meja.");
@@ -55,10 +91,20 @@ const Menu = () => {
       return;
     }
 
-    checkMejaStatus(meja); // Validasi apakah meja sedang digunakan
+    setNomorMeja(meja);
+    setNamaPemesan(nama);
+    localStorage.setItem('nomorMeja', meja);
+    if (nama) localStorage.setItem('namaPemesan', nama);
+
+    checkMejaStatus(meja);
   }, [location.search]);
 
-  // Fungsi untuk mengecek apakah meja sedang aktif (belum selesai)
+  useEffect(() => {
+    if (nomorMeja) {
+      setCart(getCartFromStorage(nomorMeja));
+    }
+  }, [nomorMeja]);
+
   const checkMejaStatus = async (meja) => {
     const { data, error } = await supabase
       .from('orders')
@@ -67,29 +113,33 @@ const Menu = () => {
       .is('ended_at', null)
       .neq('status', 'selesai');
 
-    if (error) {
-      console.error("Error checking meja:", error);
-      toast.error("Gagal memverifikasi meja.");
-      navigate('/');
-      return;
+    if (error || (data && data.length > 0)) {
+      // tetap diizinkan untuk menambah pesanan, jadi jangan navigasi ke /
+      console.log(`Meja ${meja} sedang memiliki pesanan aktif, user tetap bisa menambah.`);
     }
-
-    if (data.length > 0) {
-      toast.error(`⚠️ Meja ${meja} masih digunakan. Silakan tunggu pesanan sebelumnya selesai.`);
-      navigate('/');
-      return;
-    }
-
-    // Simpan nomor meja jika valid
-    localStorage.setItem('nomorMeja', meja);
   };
 
-  // Ambil data menu dari Supabase saat halaman dimuat
   useEffect(() => {
+    const cached = getCachedMenu();
+    if (cached && isMenuCacheValid()) {
+      setMenuList(cached);
+      setLoading(false);
+    }
+
     fetchMenu();
+
+    const subscription = supabase
+      .channel('menu-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu' }, () => {
+        fetchMenu();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, []);
 
-  // Fungsi untuk mengambil semua data menu (yang tidak dihapus)
   const fetchMenu = async () => {
     const { data, error } = await supabase
       .from('menu')
@@ -97,60 +147,54 @@ const Menu = () => {
       .eq('is_deleted', false);
 
     if (error) {
-      toast.error('Gagal mengambil data menu!');
+      toast.error('Gagal mengambil menu!');
       return;
     }
 
     setMenuList(data);
+    setCachedMenu(data);
     setLoading(false);
   };
 
-  // Fungsi untuk menambahkan item ke keranjang
   const handleAddToCart = (item) => {
+    if (!nomorMeja) return;
     if (item.stock === 0) {
-      toast.warning("Stok habis, tidak bisa dipesan!");
+      toast.warning("Stok habis!");
       return;
     }
 
-    const exists = cart.find((cartItem) => cartItem.id === item.id);
+    const exists = cart.find((i) => i.id === item.id);
+    let updatedCart;
     if (exists) {
       if (exists.quantity + 1 > item.stock) {
-        toast.warning("Jumlah melebihi stok tersedia!");
+        toast.warning("Melebihi stok tersedia!");
         return;
       }
-      // Tambahkan quantity jika item sudah ada
-      setCart(cart.map((cartItem) =>
-        cartItem.id === item.id
-          ? { ...cartItem, quantity: cartItem.quantity + 1 }
-          : cartItem
-      ));
+      updatedCart = cart.map((i) =>
+        i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+      );
     } else {
-      // Tambahkan item baru ke cart
-      setCart([...cart, { ...item, quantity: 1 }]);
+      updatedCart = [...cart, { ...item, quantity: 1 }];
     }
 
-    toast.success(`${item.name} ditambahkan ke keranjang!`, {
-      position: 'top-right',
-      autoClose: 2000,
-    });
+    setCart(updatedCart);
+    setCartToStorage(nomorMeja, updatedCart);
+    toast.success(`${item.name} ditambahkan!`);
   };
 
-  // Fungsi saat user melakukan checkout
   const handleCheckout = async (paymentMethod, name, table, orderType) => {
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Validasi stok sebelum menyimpan pesanan
     const isOutOfStock = cart.some(item => {
-      const menu = menuList.find(menu => menu.id === item.id);
+      const menu = menuList.find(m => m.id === item.id);
       return !menu || item.quantity > menu.stock;
     });
 
     if (isOutOfStock) {
-      toast.error("❌ Ada item yang stok-nya tidak mencukupi!");
+      toast.error("❌ Stok tidak mencukupi!");
       return;
     }
 
-    // Siapkan payload untuk simpan ke tabel 'orders'
     const orderItemsJSON = cart.map(item => ({
       name: item.name,
       quantity: item.quantity,
@@ -168,64 +212,98 @@ const Menu = () => {
       order_items: orderItemsJSON,
     };
 
-    // Simpan ke tabel orders
     const { data: orderData, error: orderError } = await supabase
-      .from("orders")
+      .from('orders')
       .insert(payload)
       .select()
       .single();
 
     if (orderError) {
-      toast.error("❌ Gagal menyimpan pesanan: " + orderError.message);
+      toast.error("❌ Gagal menyimpan pesanan!");
       return;
     }
 
-    // Simpan ke tabel order_items
-    const itemsToInsert = cart.map((item) => ({
+    const itemsToInsert = cart.map(item => ({
       order_id: orderData.id,
       menu_id: item.id,
       quantity: item.quantity,
       price: item.price,
     }));
 
-    const { error: itemError } = await supabase.from('order_items').insert(itemsToInsert);
+    await supabase.from('order_items').insert(itemsToInsert);
 
-    if (itemError) {
-      toast.error("❌ Gagal menyimpan item pesanan: " + itemError.message);
-      return;
-    }
-
-    // Kurangi stok menu setelah checkout
     for (let item of cart) {
-      const { error: stokError } = await supabase
+      await supabase
         .from('menu')
         .update({ stock: item.stock - item.quantity })
         .eq('id', item.id);
-
-      if (stokError) {
-        console.error(`❌ Gagal update stok ${item.name}:`, stokError);
-      }
     }
 
-    toast.success("✅ Pesanan berhasil disimpan!");
+    toast.success("✅ Pesanan berhasil!");
     setCart([]);
+    setCartToStorage(nomorMeja, []);
+
+    // Simpan status dan nama ke localStorage
+    localStorage.setItem('statusPesanan', 'menunggu');
+    localStorage.setItem('namaPemesan', name);
+    localStorage.setItem('nomorMeja', table);
+
     setShowCart(false);
     setShowCheckout(false);
-
-    // Arahkan ke halaman status pesanan
     navigate(`/status?nama=${encodeURIComponent(name)}&meja=${table}`);
   };
 
-  // Pisahkan menu berdasarkan kategori
-  const makanan = menuList.filter(item => item.kategori === 'makanan');
-  const minuman = menuList.filter(item => item.kategori === 'minuman');
+  const makanan = menuList.filter(m => m.kategori === 'makanan');
+  const minuman = menuList.filter(m => m.kategori === 'minuman');
+
+  useEffect(() => {
+    let timeoutId;
+    const meja = localStorage.getItem('nomorMeja');
+    const nama = localStorage.getItem('namaPemesan');
+
+    const resetIfIdle = async () => {
+      if (!meja || !nama) return;
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('table_number', parseInt(meja))
+        .ilike('name', nama)
+        .is('ended_at', null)
+        .neq('status', 'selesai');
+
+      const hasActiveOrder = data && data.length > 0;
+
+      if (!hasActiveOrder) {
+        localStorage.removeItem('nomorMeja');
+        localStorage.removeItem('namaPemesan');
+        localStorage.removeItem(`userCart_meja_${meja}`);
+        localStorage.removeItem('statusPesanan');
+        window.location.href = '/';
+      }
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(resetIfIdle, 2 * 60 * 1000); // 2 menit
+    };
+
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('click', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('click', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+    };
+  }, []);
 
   return (
     <>
-      {/* Navbar user */}
       <NavbarUser />
-
-      {/* Konten utama */}
       <motion.main
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -234,115 +312,73 @@ const Menu = () => {
       >
         <h1 className="text-3xl font-bold text-orange-700 mb-6 text-center">Daftar Menu</h1>
 
-        {/* Loading placeholder saat data menu masih dimuat */}
         {loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6 animate-pulse">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 animate-pulse">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="bg-white h-56 rounded-xl shadow border border-gray-200"></div>
+              <div key={i} className="bg-white h-56 rounded-xl shadow border" />
             ))}
           </div>
         ) : (
           <>
-            {/* Bagian Makanan */}
             <section className="mb-8">
               <h2 className="text-2xl font-semibold text-amber-900 mb-4">Makanan</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                {makanan.map((item) => (
-                  <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                    <MenuCard
-                      id={item.id}
-                      image={item.image}
-                      name={item.name}
-                      description={item.description}
-                      price={item.price}
-                      stock={item.stock}
-                      onAddToCart={() =>
-                        handleAddToCart({
-                          id: item.id,
-                          name: item.name,
-                          price: item.price,
-                          image: item.image,
-                          description: item.description,
-                          stock: item.stock
-                        })
-                      }
-                    />
-                  </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {makanan.map(item => (
+                  <MenuCard key={item.id} {...item} onAddToCart={() => handleAddToCart(item)} />
                 ))}
               </div>
             </section>
-
-            {/* Bagian Minuman */}
             <section>
               <h2 className="text-2xl font-semibold text-amber-900 mb-4">Minuman</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                {minuman.map((item) => (
-                  <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-                    <MenuCard
-                      id={item.id}
-                      image={item.image}
-                      name={item.name}
-                      description={item.description}
-                      price={item.price}
-                      stock={item.stock}
-                      onAddToCart={() =>
-                        handleAddToCart({
-                          id: item.id,
-                          name: item.name,
-                          price: item.price,
-                          image: item.image,
-                          description: item.description,
-                          stock: item.stock
-                        })
-                      }
-                    />
-                  </motion.div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {minuman.map(item => (
+                  <MenuCard key={item.id} {...item} onAddToCart={() => handleAddToCart(item)} />
                 ))}
               </div>
             </section>
           </>
         )}
 
-        {/* Tombol Keranjang Mengambang */}
-        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
+        <div className="fixed bottom-4 right-4 z-50">
           <button
             onClick={() => setShowCart(true)}
-            className="bg-amber-900 text-white p-3 sm:p-4 rounded-full shadow-lg hover:bg-amber-800 transition relative"
+            className="bg-amber-900 text-white p-3 rounded-full shadow hover:bg-amber-800 relative"
           >
-            <FaShoppingCart size={20} className="sm:size-6" />
+            <FaShoppingCart size={20} />
             {cart.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] sm:text-xs font-bold rounded-full px-1.5">
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full px-1.5">
                 {cart.reduce((acc, item) => acc + item.quantity, 0)}
               </span>
             )}
           </button>
         </div>
 
-        {/* Modal Keranjang */}
         <ModalCart
           show={showCart}
           onClose={() => setShowCart(false)}
           cart={cart}
-          onResetCart={() => setCart([])}
-          onQuantityChange={(id, delta) => {
-            setCart((prevCart) =>
-              prevCart
-                .map((item) =>
-                  item.id === id ? { ...item, quantity: item.quantity + delta } : item
-                )
-                .filter((item) => item.quantity > 0)
-            );
+          onResetCart={() => {
+            setCart([]);
+            setCartToStorage(nomorMeja, []);
           }}
-          onRemoveItem={(id) =>
-            setCart((prevCart) => prevCart.filter((item) => item.id !== id))
-          }
+          onQuantityChange={(id, delta) => {
+            const updatedCart = cart
+              .map(item => item.id === id ? { ...item, quantity: item.quantity + delta } : item)
+              .filter(item => item.quantity > 0);
+            setCart(updatedCart);
+            setCartToStorage(nomorMeja, updatedCart);
+          }}
+          onRemoveItem={(id) => {
+            const updatedCart = cart.filter(item => item.id !== id);
+            setCart(updatedCart);
+            setCartToStorage(nomorMeja, updatedCart);
+          }}
           onCheckout={() => {
             setShowCart(false);
             setShowCheckout(true);
           }}
         />
 
-        {/* Modal Checkout */}
         <ModalCheckout
           show={showCheckout}
           onClose={() => setShowCheckout(false)}

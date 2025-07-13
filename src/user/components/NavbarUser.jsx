@@ -1,37 +1,36 @@
-// File: src/components/UserNavbar.jsx
-
-// Import hooks dan dependencies
 import { useState, useEffect } from 'react';
-import { FaBars, FaTimes } from 'react-icons/fa'; // Icon hamburger dan close
-import { NavLink, Link } from 'react-router-dom'; // Routing
-import { motion, AnimatePresence } from 'framer-motion'; // Untuk animasi
-import { toast } from 'react-toastify'; // Notifikasi
-import 'react-toastify/dist/ReactToastify.css'; // Styling notifikasi
+import { FaBars, FaTimes } from 'react-icons/fa';
+import { NavLink, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserNavbar = () => {
-  // State untuk menampilkan menu versi mobile
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-
-  // Ambil nomor meja dari localStorage, kalau ada
   const [nomorMeja, setNomorMeja] = useState(() => localStorage.getItem('nomorMeja') || '');
+  const [namaPemesan, setNamaPemesan] = useState(() => localStorage.getItem('namaPemesan') || '');
 
-  // Fungsi toggle untuk buka/tutup menu mobile
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
   const closeMenu = () => setShowMobileMenu(false);
 
-  // Sync nomorMeja setiap kali localStorage berubah (misalnya dari tab lain)
   useEffect(() => {
-    const updateNomorMeja = () => {
-      const meja = localStorage.getItem('nomorMeja');
-      setNomorMeja(meja || '');
+    const updateState = () => {
+      setNomorMeja(localStorage.getItem('nomorMeja') || '');
+      setNamaPemesan(localStorage.getItem('namaPemesan') || '');
     };
 
-    updateNomorMeja();
-    window.addEventListener('storage', updateNomorMeja);
-    return () => window.removeEventListener('storage', updateNomorMeja);
+    updateState();
+
+    // Perbarui jika user ganti tab atau reload dari link
+    window.addEventListener('storage', updateState);
+    window.addEventListener('popstate', updateState); // ← tambahan ini
+
+    return () => {
+      window.removeEventListener('storage', updateState);
+      window.removeEventListener('popstate', updateState);
+    };
   }, []);
 
-  // Variasi animasi container dan item menu mobile
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -46,49 +45,58 @@ const UserNavbar = () => {
     visible: { opacity: 1, y: 0 },
   };
 
+  const query = nomorMeja
+    ? `?meja=${nomorMeja}${namaPemesan ? `&nama=${encodeURIComponent(namaPemesan)}` : ''}`
+    : '';
+
   return (
     <header className="bg-amber-900 shadow-md sticky top-0 z-50">
       <div className="max-w-8xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo dan brand */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={nomorMeja ? `/home${query}` : '/'} className="flex items-center gap-2">
           <img src="/foto menu/logo.png" alt="TwoNCafe Logo" className="h-9 w-9" />
           <span className="text-2xl font-bold text-white">TwoNCafe</span>
         </Link>
 
-        {/* Menu desktop (tampilan besar) */}
+        {/* Menu desktop */}
         <nav className="hidden md:flex gap-10 ml-auto">
-          <NavLink to="/" className="text-lg font-medium hover:text-amber-200 text-white">
+          <NavLink
+            to={nomorMeja ? `/${query}` : '/'}
+            className="text-lg font-medium hover:text-amber-200 text-white"
+          >
             Beranda
           </NavLink>
 
           <NavLink
-            to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
+            to={nomorMeja ? `/menu${query}` : '#'}
             onClick={(e) => {
               if (!nomorMeja) {
                 e.preventDefault();
                 toast.error('❗ Silakan scan QR kode di meja dulu!');
               }
             }}
-            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             Menu
           </NavLink>
 
           <NavLink
-            to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
+            to={nomorMeja ? `/status${query}` : '#'}
             onClick={(e) => {
               if (!nomorMeja) {
                 e.preventDefault();
                 toast.error('❗ Silakan scan QR kode di meja dulu!');
               }
             }}
-            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`text-lg font-medium hover:text-amber-200 text-white ${!nomorMeja ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
           >
             Pesananmu
           </NavLink>
         </nav>
 
-        {/* Tombol toggle menu versi mobile */}
+        {/* Toggle menu mobile */}
         <div className="md:hidden">
           <button
             onClick={toggleMobileMenu}
@@ -104,7 +112,6 @@ const UserNavbar = () => {
       <AnimatePresence>
         {showMobileMenu && (
           <>
-            {/* Latar belakang hitam semi transparan */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -114,7 +121,6 @@ const UserNavbar = () => {
               onClick={closeMenu}
             />
 
-            {/* Navigasi menu */}
             <motion.nav
               key="mobilemenu"
               initial={{ x: '100%' }}
@@ -130,21 +136,21 @@ const UserNavbar = () => {
                 animate="visible"
                 exit="exit"
               >
-                {/* Link ke beranda */}
+                {/* Beranda */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
-                    to="/"
+                    to={nomorMeja ? `/${query}` : '/'}
+                    className="block py-3 rounded-lg hover:bg-amber-800"
                     onClick={closeMenu}
-                    className="block py-3 rounded-lg hover:bg-amber-800 transition"
                   >
                     🏠 Beranda
                   </NavLink>
                 </motion.li>
 
-                {/* Link ke menu */}
+                {/* Menu */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
-                    to={nomorMeja ? `/menu?meja=${nomorMeja}` : '#'}
+                    to={nomorMeja ? `/menu${query}` : '#'}
                     onClick={(e) => {
                       if (!nomorMeja) {
                         e.preventDefault();
@@ -153,18 +159,17 @@ const UserNavbar = () => {
                         closeMenu();
                       }
                     }}
-                    className={`block py-3 rounded-lg transition ${
-                      nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
-                    }`}
+                    className={`block py-3 rounded-lg transition ${nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
+                      }`}
                   >
                     📋 Menu
                   </NavLink>
                 </motion.li>
 
-                {/* Link ke status pesanan */}
+                {/* Status */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.97 }}>
                   <NavLink
-                    to={nomorMeja ? `/status?meja=${nomorMeja}` : '#'}
+                    to={nomorMeja ? `/status${query}` : '#'}
                     onClick={(e) => {
                       if (!nomorMeja) {
                         e.preventDefault();
@@ -173,15 +178,14 @@ const UserNavbar = () => {
                         closeMenu();
                       }
                     }}
-                    className={`block py-3 rounded-lg transition ${
-                      nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
-                    }`}
+                    className={`block py-3 rounded-lg transition ${nomorMeja ? 'hover:bg-amber-800' : 'opacity-50 cursor-not-allowed'
+                      }`}
                   >
                     🧾 Pesananmu
                   </NavLink>
                 </motion.li>
 
-                {/* Tombol tutup menu */}
+                {/* Tutup */}
                 <motion.li variants={itemVariants} whileTap={{ scale: 0.95 }}>
                   <button
                     onClick={closeMenu}
