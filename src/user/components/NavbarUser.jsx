@@ -53,7 +53,7 @@ const UserNavbar = () => {
     <header className="bg-amber-900 shadow-md sticky top-0 z-50">
       <div className="max-w-8xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo dan brand */}
-        <Link to={nomorMeja ? `/home${query}` : '/'} className="flex items-center gap-2">
+        <Link to={nomorMeja ? `/${query}` : '/'} className="flex items-center gap-2">
           <img src="/foto menu/logo.png" alt="TwoNCafe Logo" className="h-9 w-9" />
           <span className="text-2xl font-bold text-white">TwoNCafe</span>
         </Link>

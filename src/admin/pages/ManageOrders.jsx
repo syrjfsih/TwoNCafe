@@ -1,46 +1,48 @@
-// File: src/admin/pages/ManageOrders.jsx
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../services/supabase'; // Koneksi ke supabase
+import { supabase } from '../../services/supabase';
 import Sidebar from '../components/Sidebar';
 import ModalUbahStatus from '../components/ModalUbahStatus';
 import ModalHapusPesanan from '../components/ModalHapusPesanan';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { CalendarDaysIcon, ArrowLeftCircleIcon } from '@heroicons/react/24/solid';
 
 const ManageOrders = () => {
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]); // Menyimpan daftar pesanan
-  const [filterStatus, setFilterStatus] = useState('Semua'); // Menyimpan filter status saat ini
-  const [showModal, setShowModal] = useState(false); // Toggle modal ubah status
-  const [showDeleteModal, setShowDeleteModal] = useState(false); // Toggle modal konfirmasi hapus
-  const [selectedOrderId, setSelectedOrderId] = useState(null); // Menyimpan ID pesanan yang dipilih
+  const [orders, setOrders] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('Semua');
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [showAll, setShowAll] = useState(false); // ⬅️ NEW STATE
 
-  // 🔐 Cek apakah admin sudah login
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate('/admin/login');
     });
   }, [navigate]);
 
-  // 🔄 Ambil dan format data pesanan dari Supabase
   const fetchOrders = async () => {
+    const today = new Date().toISOString().split('T')[0];
+
     const { data, error } = await supabase
       .from('orders')
       .select(`
+      id,
+      name,
+      total,
+      status,
+      table_number,
+      created_at,
+      order_items (
         id,
-        name,
-        total,
-        status,
-        table_number,
-        order_items (
-          menu_id,
-          quantity,
-          price,
-          menu:menu_id (name)
-        )
-      `)
+        quantity,
+        price,
+        menu_id,
+        menu:menu_id (name, stock)
+      )
+    `)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -50,8 +52,36 @@ const ManageOrders = () => {
       return;
     }
 
-    // Format agar menu menjadi satu string deskriptif
-    const formatted = data.map(order => ({
+    // Proses pembatalan otomatis
+    for (const order of data) {
+      if (order.status === 'Menunggu' && isMoreThan30Mins(order.created_at)) {
+        // 1. Update status ke Dibatalkan
+        await supabase
+          .from('orders')
+          .update({ status: 'Dibatalkan' })
+          .eq('id', order.id);
+
+        // 2. Tambah kembali stok menu
+        for (const item of order.order_items) {
+          await supabase.rpc('increment_menu_stock', {
+            menu_id_param: item.menu_id,
+            quantity_param: item.quantity,
+          });
+        }
+
+        console.log(`⏱️ Pesanan ID ${order.id} otomatis dibatalkan`);
+      }
+    }
+
+    const filtered = data.filter(order => {
+      const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+      if (!showAll) {
+        return orderDate === today && order.status !== 'Selesai';
+      }
+      return true;
+    });
+
+    const formatted = filtered.map(order => ({
       id: order.id,
       nama: order.name,
       total: order.total,
@@ -65,7 +95,14 @@ const ManageOrders = () => {
     setOrders(formatted);
   };
 
-  // 🔁 Aktifkan realtime listener Supabase untuk perubahan data pesanan
+  // Fungsi bantu: Cek apakah waktu lebih dari 30 menit lalu
+  const isMoreThan30Mins = (createdAt) => {
+    const now = new Date();
+    const createdTime = new Date(createdAt);
+    const diffMs = now - createdTime;
+    return diffMs > 30 * 60 * 1000; // 30 menit dalam milidetik
+  };
+
   useEffect(() => {
     fetchOrders();
 
@@ -77,24 +114,24 @@ const ManageOrders = () => {
         table: 'orders',
       }, (payload) => {
         console.log('📡 Realtime update:', payload);
-        fetchOrders(); // Refresh data
+        fetchOrders();
       })
-      .subscribe((status) => {
-        console.log('🟢 WebSocket status:', status);
-      });
+      .subscribe();
 
     return () => {
       channel.unsubscribe();
     };
   }, []);
 
-  // 🛠️ Buka modal ubah status
+  useEffect(() => {
+    fetchOrders(); // Refresh saat toggle showAll
+  }, [showAll]);
+
   const handleOpenModal = (id) => {
     setSelectedOrderId(id);
     setShowModal(true);
   };
 
-  // ✅ Simpan perubahan status ke database
   const handleStatusChange = async (newStatus) => {
     const { error } = await supabase
       .from('orders')
@@ -114,13 +151,11 @@ const ManageOrders = () => {
     fetchOrders();
   };
 
-  // 🗑️ Buka modal hapus pesanan
   const handleDeleteClick = (id) => {
     setSelectedOrderId(id);
     setShowDeleteModal(true);
   };
 
-  // ❌ Hapus data pesanan dan item terkait dari database
   const confirmDelete = async () => {
     const { error: itemsError } = await supabase
       .from('order_items')
@@ -145,19 +180,36 @@ const ManageOrders = () => {
     fetchOrders();
   };
 
-  // 🔍 Filter berdasarkan status
   const filteredOrders = orders.filter(order =>
     filterStatus === 'Semua' ? true : order.status === filterStatus
   );
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <Sidebar /> {/* Navigasi sidebar */}
+      <Sidebar />
 
       <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-6 text-[#702F25]">Pesanan Masuk</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-[#702F25]">
+            Pesanan Masuk {showAll ? '(Semua)' : 'Hari Ini'}
+          </h1>
 
-        {/* Filter status */}
+          <button
+            onClick={() => setShowAll(prev => !prev)}
+            className="flex items-center gap-2 text-sm font-medium px-4 py-2 border border-[#702F25] text-[#702F25] rounded-md hover:bg-[#702F25] hover:text-white transition-all duration-200"
+          >
+            {showAll ? (
+              <>
+                <span className="text-lg">⬅️</span> Sembunyikan Hari Lain
+              </>
+            ) : (
+              <>
+                <span className="text-lg">📅</span> Lihat Semua Hari
+              </>
+            )}
+          </button>
+        </div>
+
         <div className="mb-4 flex justify-between items-center">
           <div>
             <label className="text-sm font-medium text-gray-700 mr-2">Filter Status:</label>
@@ -174,7 +226,6 @@ const ManageOrders = () => {
           </div>
         </div>
 
-        {/* Tabel daftar pesanan */}
         <div className="overflow-x-auto bg-white rounded-xl shadow">
           <table className="w-full table-auto text-sm text-left text-gray-600">
             <thead className="bg-[#702F25] text-white">
@@ -198,13 +249,12 @@ const ManageOrders = () => {
                   <td className="px-4 py-2">Rp. {order.total.toLocaleString()}</td>
                   <td className="px-4 py-2">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        order.status === 'Selesai'
-                          ? 'bg-green-100 text-green-700'
-                          : order.status === 'Diproses'
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${order.status === 'Selesai'
+                        ? 'bg-green-100 text-green-700'
+                        : order.status === 'Diproses'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
-                      }`}
+                        }`}
                     >
                       {order.status}
                     </span>
@@ -237,7 +287,6 @@ const ManageOrders = () => {
         </div>
       </main>
 
-      {/* Modal untuk ubah status pesanan */}
       <ModalUbahStatus
         isOpen={showModal}
         onClose={() => setShowModal(false)}
@@ -246,14 +295,13 @@ const ManageOrders = () => {
         orderId={selectedOrderId}
       />
 
-      {/* Modal konfirmasi hapus */}
       <ModalHapusPesanan
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={confirmDelete}
       />
 
-      <ToastContainer /> {/* Container notifikasi toast */}
+      <ToastContainer />
     </div>
   );
 };
