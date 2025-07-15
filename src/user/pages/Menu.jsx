@@ -126,17 +126,37 @@ const Menu = () => {
       setLoading(false);
     }
 
-    fetchMenu();
+    fetchMenu(); // Fetch menu awal
 
-    const subscription = supabase
+    const channel = supabase
       .channel('menu-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'menu' }, () => {
-        fetchMenu();
-      })
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'menu' },
+        () => {
+          console.log("📦 Perubahan data menu terdeteksi, memuat ulang...");
+          fetchMenu();
+        }
+      );
+
+    const subscribeToChannel = async () => {
+      const { error } = await channel.subscribe((status) => {
+        console.log("📡 Status channel realtime:", status);
+        if (status === 'SUBSCRIBED') {
+          console.log("✅ Terhubung ke realtime 'menu-realtime'");
+        }
+      });
+
+      if (error) {
+        console.error("❌ Gagal konek ke realtime Supabase:", error.message);
+      }
+    };
+
+    subscribeToChannel();
 
     return () => {
-      supabase.removeChannel(subscription);
+      channel.unsubscribe();
+      console.log("❎ Channel realtime 'menu-realtime' di-unsubscribe");
     };
   }, []);
 

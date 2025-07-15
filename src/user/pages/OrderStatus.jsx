@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
 import UserNavbar from '../components/NavbarUser';
-import { setStatusPesanan, clearPesananSession } from "../../utils/sessionHelper";
 import { FaClock, FaCheckCircle, FaSpinner } from 'react-icons/fa';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const StatusBadge = ({ status }) => {
   let color = 'text-yellow-400';
@@ -56,20 +57,27 @@ const OrderStatus = () => {
     if (!name.trim() || !table.trim()) return;
 
     setLoading(true);
+
     const { data, error } = await supabase
       .from('orders')
       .select('*, order_items(*, menu:menu_id(name))')
-      .ilike('name', name.trim())
       .eq('table_number', parseInt(table))
+      .ilike('name', `%${name}%`)
       .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (error || !data) {
+    const latestOrder = data?.[0];
+
+    if (error || !latestOrder) {
       setOrder(null);
       setNotFound(true);
+      toast.error("❌ Pemesan tidak ditemukan");
+    } else if (latestOrder.status?.toLowerCase() === 'menunggu') {
+      setOrder(null);
+      setNotFound(true);
+      toast.warning("⚠️ Mohon selesaikan dulu pesananmu");
     } else {
-      setOrder(data);
+      setOrder(latestOrder);
       setNotFound(false);
     }
 
@@ -82,7 +90,7 @@ const OrderStatus = () => {
     return () => clearInterval(interval);
   }, [name, table]);
 
-  // ⏳ Simpan & hapus localStorage berdasarkan status pesanan
+  // Simpan status pesanan ke localStorage, hapus jika selesai
   useEffect(() => {
     if (!order) return;
 
@@ -98,7 +106,7 @@ const OrderStatus = () => {
     }
   }, [order]);
 
-  // 🔄 Auto-reset halaman jika user tidak aktif 2 menit & pesanan selesai
+  // Auto reset jika idle 2 menit & tidak ada pesanan aktif
   useEffect(() => {
     let timeoutId;
     const meja = localStorage.getItem('nomorMeja');
@@ -128,7 +136,7 @@ const OrderStatus = () => {
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(resetIfIdle, 2 * 60 * 1000); // 2 menit
+      timeoutId = setTimeout(resetIfIdle, 2 * 60 * 1000);
     };
 
     window.addEventListener('mousemove', resetTimer);
@@ -149,6 +157,7 @@ const OrderStatus = () => {
       <UserNavbar />
 
       <main className="min-h-screen bg-amber-50 py-12 px-4 sm:px-8 md:px-20 lg:px-40">
+        <ToastContainer position="top-center" autoClose={3000} />
         <h1 className="text-2xl sm:text-3xl font-bold text-center text-amber-900 mb-8">
           Status Pesananmu
         </h1>
