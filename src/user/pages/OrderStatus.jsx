@@ -29,6 +29,7 @@ const StatusBadge = ({ status }) => {
 
 const getStatusMessage = (status) => {
   const s = status?.toLowerCase();
+  if (s === 'menunggu') return '💸 Pesanan Berhasil, Silakan bayar ke kasir agar pesananmu segera diproses.';
   if (s === 'diproses') return '✅ Pembayaran Berhasil! Pesananmu sedang kami proses, Mohon menunggu.';
   if (s === 'selesai') return '🎉 Pesananmu telah selesai. Selamat menikmati!';
   return '💸 Silakan bayar ke kasir agar pesananmu segera diproses.';
@@ -36,6 +37,7 @@ const getStatusMessage = (status) => {
 
 const getStatusImage = (status) => {
   const s = status?.toLowerCase();
+  if (s === 'menunggu') return '/foto-icon/succes.png';
   if (s === 'diproses') return '/foto-icon/happy.png';
   if (s === 'selesai') return '/foto-icon/done.png';
   return '/foto-icon/succes.png';
@@ -72,10 +74,6 @@ const OrderStatus = () => {
       setOrder(null);
       setNotFound(true);
       toast.error("❌ Pemesan tidak ditemukan");
-    } else if (latestOrder.status?.toLowerCase() === 'menunggu') {
-      setOrder(null);
-      setNotFound(true);
-      toast.warning("⚠️ Mohon selesaikan dulu pesananmu");
     } else {
       setOrder(latestOrder);
       setNotFound(false);
@@ -90,7 +88,6 @@ const OrderStatus = () => {
     return () => clearInterval(interval);
   }, [name, table]);
 
-  // Simpan status pesanan ke localStorage, hapus jika selesai
   useEffect(() => {
     if (!order) return;
 
@@ -106,7 +103,6 @@ const OrderStatus = () => {
     }
   }, [order]);
 
-  // Auto reset jika idle 2 menit & tidak ada pesanan aktif
   useEffect(() => {
     let timeoutId;
     const meja = localStorage.getItem('nomorMeja');
