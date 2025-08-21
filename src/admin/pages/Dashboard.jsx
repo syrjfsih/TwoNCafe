@@ -164,12 +164,12 @@ const Dashboard = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-[#702F25]">Dashboard Admin</h1>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-700">BangRajz (Admin)</span>
-            <img
-              src="/public/foto menu/raj.jpg"
-              alt="Admin"
-              className="w-10 h-10 rounded-full border-2 border-[#702F25]"
-            />
+            <span className="text-sm text-gray-700">TwoNCafe (Admin)</span>
+              <img
+                src="/public/foto-icon/logo twoncafe.png"
+                alt="Admin"
+                className="w-10 h-10 rounded-full border-2 border-[#702F25]"
+              />
           </div>
         </div>
 
