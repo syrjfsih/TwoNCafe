@@ -39,9 +39,3 @@
 
 📈 **GitHub Stats**  
 ![Raj's GitHub stats](https://github-readme-stats.vercel.app/api?username=syrjfsih&show_icons=true&theme=radical)
-
-🔥 **Commit Activity**  
-[![Raj's Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=syrjfsih&theme=react-dark&hide_border=true&bg_color=0D1117)](https://github.com/syrjfsih)
-
-💡 **Most Used Languages**  
-![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=syrjfsih&layout=compact&theme=radical)
