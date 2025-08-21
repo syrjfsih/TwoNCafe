@@ -11,7 +11,7 @@
 ## 📖 Tentang Aplikasi
 **TwoNCafe** adalah aplikasi **pemesanan makanan berbasis web** yang dirancang untuk mempermudah pelanggan melakukan pemesanan langsung dari meja dengan **barcode scan** tanpa login, serta memberikan admin dashboard profesional untuk mengelola pesanan, menu, dan laporan penjualan.
 
-✨ Fitur Utama:
+✨ **Fitur Utama**:
 - Pemesanan tanpa login (customer-friendly)  
 - Sistem **status pesanan real-time**  
 - Dashboard admin lengkap (manajemen menu, pesanan, laporan penjualan)  
@@ -30,9 +30,6 @@
 ---
 
 ## 📊 Statistik Pengembangan
-<p align="center">
-  <img src="https://github-readme-stats.vercel.app/api/pin/?username=USERNAME&repo=TwoNCafe&theme=radical" />
-</p>
 
 ⏳ **Estimasi Waktu Pengerjaan**  
 - Perencanaan: 2 minggu  
@@ -40,7 +37,11 @@
 - Testing & debugging: 2 minggu  
 - Penyempurnaan & dokumentasi: ongoing 🚧  
 
-📈 **Total Commit**  
-<p align="center">
-  <img src="https://github-readme-activity-graph.vercel.app/graph?username=USERNAME&theme=react-dark&hide_border=true&bg_color=0D1117" />
-</p>
+📈 **GitHub Stats**  
+![Raj's GitHub stats](https://github-readme-stats.vercel.app/api?username=syrjfsih&show_icons=true&theme=radical)
+
+🔥 **Commit Activity**  
+[![Raj's Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=syrjfsih&theme=react-dark&hide_border=true&bg_color=0D1117)](https://github.com/syrjfsih)
+
+💡 **Most Used Languages**  
+![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=syrjfsih&layout=compact&theme=radical)
